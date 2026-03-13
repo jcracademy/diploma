@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Diploma Exam Management System</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body { background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; }
+        .sticky-header {
+            position: sticky; top: 0; background: #f4f6f9; z-index: 1000;
+            padding-top: 15px; padding-bottom: 5px; border-bottom: 2px solid #ddd; margin-bottom: 20px;
+        }
+        .header { font-size: 26px; font-weight: bold; color: #2c3e50; }
+        .subject-box { background: #1e3a5f; color: white; padding: 20px; border-radius: 8px; height: 100%; }
+        .dateBtn { 
+            width: 38px; height: 38px; line-height: 38px; 
+            background-color: #a3d5c4; margin: 2px; 
+            cursor: pointer; border-radius: 5px; display: inline-block;
+            font-weight: 500; transition: all 0.2s; text-align: center;
+        }
+        .dateBtn:hover { background-color: #1abc9c; color: white; transform: scale(1.1); }
+        .dropdown-menu { min-width: 260px !important; border: none; }
+        .download-btns button { margin-bottom: 5px; width: 100%; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sticky-header">
+        <div class="header"> Diploma Exam Management System </div>
+        <div class="fs-5 text-secondary"> Center: Pirganj Govt. TSC, Thakurgaon </div>
+    </div>
+
+    <div id="standardSearch" class="card mb-3 shadow-sm border-0">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Subject Code / Roll</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Code or Roll..." oninput="validateOfflineCode(this.value)">
+                </div>
+                <div class="col-md-9 d-flex align-items-end flex-wrap">
+                    <button class="btn btn-primary me-2 mb-2" onclick="searchBySubjectCode()"> Search </button>
+                    <button class="btn btn-primary me-2 mb-2" onclick="searchByRoll()"> Search with Roll </button>
+                    
+                    <div class="dropdown d-inline-block me-2 mb-2">
+                        <button class="btn btn-dark dropdown-toggle" type="button" id="dateDropdown" data-bs-toggle="dropdown"> Examinee on Date </button>
+                        <ul class="dropdown-menu shadow p-3">
+                            <li><h6 class="dropdown-header px-0 mb-2">Select Exam Date</h6></li>
+                            <div class="d-flex flex-wrap" id="dateContainer"></div>
+                        </ul>
+                    </div>
+                    <button class="btn btn-info text-white me-2 mb-2" onclick="toggleSearch(true)"> Specific Search </button>
+                    <button class="btn btn-success mb-2" onclick="goToShironamPage()"> শিরোনাম পত্র </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="specificSearch" class="card mb-3 shadow-sm border-0" style="display: none;">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label fw-bold">Institute</label><select id="specInst" class="form-select"><option value="">Select Institute</option></select></div>
+                <div class="col-md-2"><label class="form-label fw-bold">Technology</label><select id="specTech" class="form-select"><option value="">Select Tech</option></select></div>
+                <div class="col-md-2"><label class="form-label fw-bold">Semester</label><select id="specSemi" class="form-select"><option value="">Select Semi</option></select></div>    
+                <div class="col-md-2"><label class="form-label fw-bold">Syllabus</label><select id="specSyllabus" class="form-select"><option value="">Select Syllabus</option></select></div>                                
+                <div class="col-md-3 d-flex align-items-end flex-wrap">
+                    <button class="btn btn-primary me-2 mb-2" onclick="filterSearch()"> Filter Search </button>
+                    <button class="btn btn-secondary mb-2" onclick="toggleSearch(false)"> Back </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="subject-box shadow-sm">
+                <h5 class="border-bottom pb-2">Subject Info</h5>
+                <p class="mb-1">Code: <span id="subDisplayCode" class="text-warning fw-bold">---</span></p>
+                <p class="mb-1">Name: <span id="subDisplayName" class="text-warning fw-bold">---</span></p>
+                <p class="mb-0 text-white-50 small">TF: <span id="subTF">---</span> | PF: <span id="subPF">---</span></p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="card-title text-primary border-bottom pb-2">Institute Summary</h6>
+                    <div id="instituteList" class="small mt-2">No summary...</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="card-title text-danger border-bottom pb-2">Downloads</h6>
+                    <div class="row row-cols-2 g-1 mt-2 download-btns">
+                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadRolls()">Rolls</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadSeatLabels()">Seat Label</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadAttendanceSheet()">Attendance Sheet</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadQuestionCount()">Question Count</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadRoutine()">Routine</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadStudentSummary()">Student Summary</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                <h5 class="mb-2"><span id="count" class="badge bg-secondary">Total Student: 0</span></h5>
+                <div class="mb-2">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="sortTable('roll')">Sort with Roll</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="sortTable('sl')">Sort with SL</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle text-center" id="mainTable">
+                    <thead class="table-light">
+                        <tr><th>SL</th><th>Roll</th><th>Name</th><th>Dept</th><th>Semi</th><th>Institute</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="mytbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="report.js"></script> 
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxnmUcuFVLLK7pg9NsP8YVtC9LFjvhVMOV7vt08MWX09MIKl9LuNgZX4LXmR7jvHoZZ/exec"; 
+    
+    let allSubjectsData = {}; 
+    let routineData = {};
+    let currentStudents = [];
+    let selectedDate = "13-03-2026"; // ডিফল্ট বা ডাইনামিক তারিখ
+
+    window.onload = function() {
+        initDropdowns();
+        generateDateButtons();
+        fetchAllData(); 
+    };
+
+    function fetchAllData() {
+        fetch(API_URL + "?action=getAllData").then(r => r.json()).then(res => {
+            allSubjectsData = res.subjects;
+            routineData = res.routine;
+        });
+    }
+
+    function searchBySubjectCode() {
+        const code = document.getElementById("searchInput").value.trim();
+        if (!allSubjectsData[code]) { Swal.fire("Invalid Subject Code"); return; }
+        updateSubjectDisplay(code, allSubjectsData[code]);
+        Swal.fire({ title: 'Loading...', didOpen: () => Swal.showLoading() });
+        fetch(API_URL + "?action=searchByCode&code=" + code).then(r => r.json()).then(res => {
+            Swal.close();
+            currentStudents = res.students;
+            renderTable(currentStudents);
+            genSummary(currentStudents);
+        });
+    }
+
+    function searchByRoll() {
+        const roll = document.getElementById("searchInput").value.trim();
+        if (!roll) return;
+        Swal.fire({ title: 'Finding Roll...', didOpen: () => Swal.showLoading() });
+        fetch(API_URL + "?action=searchByRoll&roll=" + roll).then(r => r.json()).then(res => {
+            Swal.close();
+            if (res.success) {
+                const s = res.data;
+                Swal.fire({ title: 'Examinee Profile', html: `<div class="text-start p-2"><strong>Name:</strong> ${s.name}<br><strong>Roll:</strong> ${s.roll}<br><strong>Subjects:</strong> ${s.allSubjects}</div>` });
+            } else { Swal.fire(res.error); }
+        });
+    }
+
+    function renderTable(data) {
+        document.getElementById("mytbody").innerHTML = data.map(s => `
+            <tr><td>${s.sl}</td><td class="fw-bold">${s.roll}</td><td class="text-start">${s.name}</td><td>${s.dept}</td><td>${s.semi}</td><td>${s.inst}</td>
+            <td><button class="btn btn-sm btn-info text-white" onclick="showDetails('${s.roll}')">Details</button></td></tr>
+        `).join('');
+        document.getElementById("count").innerText = "Total Student: " + data.length;
+    }
+
+    // শিরোনাম পত্র পেজে যাওয়ার আগে ডেটা সেভ করা
+    function goToShironamPage() {
+        if (currentStudents.length === 0) {
+            Swal.fire("ডেটা নেই", "প্রথমে সাবজেক্ট কোড দিয়ে সার্চ করে স্টুডেন্ট লিস্ট আনুন।", "warning");
+            return;
+        }
+
+        const subCode = document.getElementById("subDisplayCode").innerText;
+        const subName = document.getElementById("subDisplayName").innerText;
+
+        // শিরোনাম পেজের জন্য প্রয়োজনীয় অবজেক্ট তৈরি
+        const examData = {
+            examName: "Diploma in Engineering Final Exam - 2026", // এটি ডাইনামিক করতে পারেন
+            subName: subName,
+            subCode: subCode,
+            examDate: selectedDate
+        };
+
+        // sessionStorage-এ ডেটা রাখা হচ্ছে
+        sessionStorage.setItem('currentStudents', JSON.stringify(currentStudents));
+        sessionStorage.setItem('currentExamInfo', JSON.stringify(examData));
+
+        // পেজ পরিবর্তন
+        window.location.href = 'shironam.html'; 
+    }
+
+    function sortTable(type) {
+        if (type === 'roll') currentStudents.sort((a, b) => a.roll - b.roll);
+        else currentStudents.sort((a, b) => a.sl - b.sl);
+        renderTable(currentStudents);
+    }
+
+    function validateOfflineCode(val) {
+        if (allSubjectsData[val]) updateSubjectDisplay(val, allSubjectsData[val]);
+    }
+
+    function updateSubjectDisplay(code, info) {
+        document.getElementById("subDisplayCode").innerText = code;
+        document.getElementById("subDisplayName").innerText = info.name;
+        document.getElementById("subTF").innerText = info.tf;
+        document.getElementById("subPF").innerText = info.pf;
+    }
+
+    function genSummary(data) {
+        let counts = {};
+        data.forEach(s => counts[s.inst] = (counts[s.inst] || 0) + 1);
+        document.getElementById("instituteList").innerHTML = Object.entries(counts).map(([n, c]) => `
+            <div class="d-flex justify-content-between border-bottom py-1"><span>${n}</span><strong>${c}</strong></div>
+        `).join('');
+    }
+
+    function generateDateButtons() {
+        let h = ""; for (let i = 1; i <= 31; i++) { let d = i.toString().padStart(2, '0'); h += `<div class="dateBtn" onclick="showDailySummary('${d}')">${d}</div>`; }
+        document.getElementById("dateContainer").innerHTML = h;
+    }
+
+    function showDailySummary(date) {
+        selectedDate = date + "-03-2026"; // তারিখ আপডেট রাখা হচ্ছে
+        const dayInfo = routineData[date];
+        if (!dayInfo) { Swal.fire("No exam scheduled."); return; }
+        const code = dayInfo.subjectCode;
+        let modalHtml = `<div class="table-responsive"><table class="table table-bordered text-center">
+            <thead class="table-light"><tr><th colspan="2">Morning</th><th colspan="2">Evening</th></tr><tr><th>Code</th><th>Exm.</th><th>Code</th><th>Exm.</th></tr></thead>
+            <tbody><tr><td>${dayInfo.time === "Morning" ? code : "-"}</td><td>${dayInfo.time === "Morning" ? dayInfo.examineeNos : "-"}</td>
+            <td>${dayInfo.time === "Evening" ? code : "-"}</td><td>${dayInfo.time === "Evening" ? dayInfo.examineeNos : "-"}</td></tr></tbody></table></div>
+            <button class="btn btn-primary btn-sm" onclick="loadFullList('${code}')">Load List</button>`;
+        Swal.fire({ title: `Date: ${date}`, html: modalHtml, showConfirmButton: false });
+    }
+
+    function loadFullList(code) { Swal.close(); document.getElementById("searchInput").value = code; searchBySubjectCode(); }
+    
+    function toggleSearch(s) { document.getElementById("standardSearch").style.display = s ? "none" : "block"; document.getElementById("specificSearch").style.display = s ? "block" : "none"; }
+
+    function initDropdowns() {
+        const fill = (id, list) => { 
+            const s = document.getElementById(id); 
+            if(!s) return;
+            list.forEach(i => { const o = document.createElement("option"); o.value = i; o.innerText = i; s.appendChild(o); }); 
+        };
+        fill("specInst", ["Pirgonj Polytechnic Institute", "Ranisonkoil Polytechnic Institute", "Ranisankail Ideal Non-Govt. Polytechnic Institute"]);
+        fill("specTech", ["(64) Civil", "(67) Electrical", "(70) Mechanical", "(85) Computer"]);
+        fill("specSemi", ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]);
+        fill("specSyllabus", ["2022", "2016"]);
+    }
+
+    function showDetails(roll) {
+        const s = currentStudents.find(x => x.roll == roll);
+        Swal.fire({ title: 'Profile', html: `<div class="text-start p-2"><strong>Name:</strong> ${s.name}<br><strong>Roll:</strong> ${s.roll}<br><strong>Subjects:</strong> ${s.allSubjects}</div>` });
+    }
+</script>
+</body>
+</html>
