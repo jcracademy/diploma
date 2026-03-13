@@ -172,7 +172,7 @@ async function downloadAttendanceSheet() {
 
         const templateWorkbook = new ExcelJS.Workbook();
         await templateWorkbook.xlsx.load(arrayBuffer);
-        const templateSheet = templateWorkbook.getWorksheet(1);
+        const templateSheet = templateWorkbook.getWorksheet("AttendanceSheet");
 
         // ২. ডাটাবেজ থেকে পরীক্ষার্থী ফিল্টার
         const res = await fetch(API_URL + "?action=filterSearch");
@@ -331,4 +331,5 @@ function downloadQuestionCount() {
     .catch(err => {
         Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে: " + err.message, "error");
     });
+
 }
