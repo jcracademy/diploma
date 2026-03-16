@@ -12,6 +12,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>  
 
     <style>
         body { background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -20,7 +22,6 @@
             padding-top: 15px; padding-bottom: 5px; border-bottom: 2px solid #ddd; margin-bottom: 20px;
         }
         .header { font-size: 26px; font-weight: bold; color: #2c3e50; }
-        .subject-box { background: #1e3a5f; color: white; padding: 20px; border-radius: 8px; height: 100%; }
         .dateBtn { 
             width: 38px; height: 38px; line-height: 38px; 
             margin: 2px; cursor: pointer; border-radius: 5px; 
@@ -39,7 +40,7 @@
 <div class="container">
     <div class="sticky-header">
         <div class="header"> Diploma Exam Management System </div>
-        <div class="fs-5 text-secondary"> Center: Pirganj Govt. TSC, Thakurgaon </div>
+        <div class="fs-6 text-secondary"> Center: Pirganj Govt. TSC, Thakurgaon </div>
     </div>
 
     <div id="standardSearch" class="card mb-3 shadow-sm border-0">
@@ -47,23 +48,23 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Subject Code / Roll</label>
-                    <input type="text" id="searchInput" class="form-control" placeholder="Code or Roll..." oninput="validateOfflineCode(this.value)">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Enter Subject Code..." oninput="validateOfflineCode(this.value)">
                 </div>
                 <div class="col-md-9 d-flex align-items-end flex-wrap">
-                    <button class="btn btn-primary me-2 mb-2" onclick="searchBySubjectCode()"> Search </button>
-                    <button class="btn btn-primary me-2 mb-2" onclick="searchByRoll()"> Search with Roll </button>
-                    
-                    <div class="dropdown d-inline-block me-2 mb-2">
-                        <button class="btn btn-dark dropdown-toggle" type="button" id="dateDropdown" data-bs-toggle="dropdown"> Examinee on Date </button>
+                    <button class="btn btn-primary me-2" onclick="searchBySubjectCode()"> Search </button>
+                    <button class="btn btn-primary me-2" onclick="searchByRoll()"> Search with Roll </button>
+                    <button class="btn btn-dark text-white me-2" onclick="toggleSearch(true)"> Specific Search </button>
+
+                    <div class="dropdown d-inline-block me-2">
+                        <button class="btn btn-warning dropdown-toggle" type="button" id="dateDropdown" data-bs-toggle="dropdown"> Examinee on Date </button>
                         <ul class="dropdown-menu shadow p-3">
-                            <li><h6 class="dropdown-header px-0 mb-2">Select Exam Date (March 2026)</h6></li>
+                            <li><h6 class="dropdown-header px-0">Select Exam Date (March 2026)</h6></li>
                             <div class="d-flex flex-wrap" id="dateContainer"></div>
                             <li class="mt-2 small text-muted text-center">Yellow = Exam Day</li>
                         </ul>
                     </div>
-                    
-                    <button class="btn btn-info text-white me-2 mb-2" onclick="toggleSearch(true)"> Specific Search </button>
-                    <button class="btn btn-success mb-2" onclick="goToShironamPage()"> শিরোনাম পত্র </button>
+                
+                    <button class="btn btn-success" onclick="goToShironamPage()"> শিরোনাম পত্র </button>
                 </div>
             </div>
         </div>
@@ -86,11 +87,11 @@
 
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
-            <div class="subject-box shadow-sm">
+            <div class="card h-100 shadow-sm border-0" style="padding: 20px;">
                 <h5 class="border-bottom pb-2">Subject Info</h5>
-                <p class="mb-1">Code: <span id="subDisplayCode" class="text-warning fw-bold">---</span></p>
-                <p class="mb-1">Name: <span id="subDisplayName" class="text-warning fw-bold">---</span></p>
-                <p class="mb-0 text-white-50 small">TF: <span id="subTF">---</span> | PF: <span id="subPF">---</span></p>
+                <p class="mb-1">Code: <span id="subDisplayCode" class="fw-bold">---</span></p>
+                <p class="mb-1">Name: <span id="subDisplayName" class="fw-bold">---</span></p>
+                <p class="mb-0 text-50 small">TF: <span id="subTF">---</span> | PF: <span id="subPF">---</span></p>
             </div>
         </div>
         <div class="col-md-4 mb-3">
@@ -101,21 +102,34 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <h6 class="card-title text-danger border-bottom pb-2">Downloads</h6>
-                    <div class="row row-cols-2 g-1 mt-2 download-btns">
-                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadRolls()">Rolls</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadSeatLabels()">Seat Label</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadAttendanceSheet()">Attendance Sheet</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadQuestionCount()">Question Count</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadRoutine()">Routine</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark" onclick="downloadStudentSummary()">Student Summary</button></div>
-                    </div>
+<div class="col-md-4 mb-3">
+    <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+                <h6 class="card-title text-danger mb-0">Downloads</h6>
+                <button class="btn btn-sm text-primary fw-bold" onclick="toggleMoreButtons(this)" id="moreBtn" style="font-size: 12px; cursor: pointer;">
+                    More Buttons (+)
+                </button>
+            </div>
+            
+            <div class="row row-cols-2 g-1 mt-2 download-btns">
+                <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadRolls()">Rolls</button></div>
+                <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadSeatLabels()">Seat Label</button></div>
+                <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadAttendanceSheet()">Attendance Sheet</button></div>
+                <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadQuestionCountPDF()">Question Count</button></div>
+                <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadRoutine()">Routine</button></div>
+                <div class="col"><button class="btn btn-sm btn-outline-danger w-100" onclick="showPracticalExamineesTable()">Practical List</button></div>
+                
+                <div class="col extra-btn d-none">
+                    <button class="btn btn-sm btn-outline-primary w-100" onclick="downloadCenterFee()">Center Fee</button>
+                </div>
+                <div class="col extra-btn d-none">
+                    <button class="btn btn-sm btn-outline-primary w-100" onclick="downloadSeatPlan()">Seat Plan</button>
                 </div>
             </div>
         </div>
+    </div>
+</div>
     </div>
 
     <div class="card shadow-sm border-0">
@@ -130,7 +144,7 @@
             <div class="table-responsive">
                 <table class="table table-bordered table-hover align-middle text-center" id="mainTable">
                     <thead class="table-light">
-                        <tr><th>SL</th><th>Roll</th><th>Name</th><th>Dept</th><th>Semi</th><th>Institute</th><th>Action</th></tr>
+                        <tr><th>SL</th><th>Roll</th><th>Semi</th><th>Dept</th><th>Name</th><th>Subject Codes</th><th>Action</th></tr>
                     </thead>
                     <tbody id="mytbody"></tbody>
                 </table>
@@ -148,30 +162,41 @@
     let currentStudents = [];
     let selectedDate = "13-03-2026"; 
 
-    window.onload = function() {
-        initDropdowns();
-        fetchAllData(); // ডাটা আগে আনছি যাতে ক্যালেন্ডার বাটনগুলো রাঙানো যায়
-    };
+    window.onload = function() {initDropdowns(); fetchAllData();};
 
     function fetchAllData() {
-        fetch(API_URL + "?action=getAllData").then(r => r.json()).then(res => {
-            allSubjectsData = res.subjects;
-            routineData = res.routine;
-            generateDateButtons(); // ডাটা আসার পর বাটন জেনারেট করছি
-        });
+        fetch(API_URL + "?action=getBGData")
+            .then(r => r.json())
+            .then(res => {
+                allSubjectsData = res.subjects;
+                routineData = res.routine || {};
+                generateDateButtons();
+            })
+            .catch(err => console.error("Data fetch error:", err));
     }
+
 
     function searchBySubjectCode() {
         const code = document.getElementById("searchInput").value.trim();
-        if (!allSubjectsData[code]) { Swal.fire("Invalid Subject Code"); return; }
-        updateSubjectDisplay(code, allSubjectsData[code]);
+        const subInfo = allSubjectsData.find(s => s.code === code);
+        
+        if (!subInfo) { 
+            Swal.fire("Invalid Subject Code", "এই কোডটি ডাটাবেসে পাওয়া যায়নি।", "error"); 
+            return; 
+        }
+        
+        updateSubjectDisplay(code, subInfo);
+        
         Swal.fire({ title: 'Loading...', didOpen: () => Swal.showLoading() });
-        fetch(API_URL + "?action=searchByCode&code=" + code).then(r => r.json()).then(res => {
-            Swal.close();
-            currentStudents = res.students;
-            renderTable(currentStudents);
-            genSummary(currentStudents);
-        });
+        fetch(API_URL + "?action=searchByCode&code=" + code)
+            .then(r => r.json())
+            .then(res => {
+                Swal.close();
+                console.log(res.students);
+                currentStudents = res.students;
+                renderTable(currentStudents);
+                genSummary(currentStudents);
+            });
     }
 
     function searchByRoll() {
@@ -182,14 +207,21 @@
             Swal.close();
             if (res.success) {
                 const s = res.data;
-                Swal.fire({ title: 'Examinee Profile', html: `<div class="text-start p-2"><strong>Name:</strong> ${s.name}<br><strong>Roll:</strong> ${s.roll}<br><strong>Subjects:</strong> ${s.allSubjects}</div>` });
+                Swal.fire({ title: 'Examinee Profile', 
+                html: `<div class="text-start p-2"><strong>Name:</strong> ${s.name}<br><strong>Roll:</strong> ${s.roll}<br><strong>Subjects:</strong> ${s.subcodeDetails}</div>` });
             } else { Swal.fire(res.error); }
         });
     }
 
     function renderTable(data) {
         document.getElementById("mytbody").innerHTML = data.map(s => `
-            <tr><td>${s.sl}</td><td class="fw-bold">${s.roll}</td><td class="text-start">${s.name}</td><td>${s.dept}</td><td>${s.semi}</td><td>${s.inst}</td>
+            <tr>
+                <td>${s.sl}</td>
+                <td class="fw-bold">${s.roll}</td>
+                <td>${s.semi}</td>
+                <td>${s.dept}</td>                                
+                <td class="text-start">${s.name}</td>
+                <td>${s.inst}</td>
             <td><button class="btn btn-sm btn-info text-white" onclick="showDetails('${s.roll}')">Details</button></td></tr>
         `).join('');
         document.getElementById("count").innerText = "Total Student: " + data.length;
@@ -199,10 +231,8 @@
         let h = ""; 
         for (let i = 1; i <= 31; i++) { 
             let dayKey = i.toString().padStart(2, '0'); 
-            // যদি এই তারিখে পরীক্ষা থাকে তবে 'has-exam' ক্লাস যোগ হবে
             let hasExam = routineData && routineData[dayKey] && routineData[dayKey].length > 0;
             let statusClass = hasExam ? "has-exam" : "no-exam";
-            
             h += `<div class="dateBtn ${statusClass}" onclick="showDailySummary('${dayKey}')">${i}</div>`; 
         }
         document.getElementById("dateContainer").innerHTML = h;
@@ -273,7 +303,18 @@
     }
 
     function validateOfflineCode(val) {
-        if (allSubjectsData[val]) updateSubjectDisplay(val, allSubjectsData[val]);
+        if (!val || !allSubjectsData || !Array.isArray(allSubjectsData)) return;
+
+        // অ্যারে থেকে সাবজেক্ট কোডটি খুঁজে বের করা
+        const subInfo = allSubjectsData.find(s => s.code.toString().trim() === val.trim());
+        
+        if (subInfo) {
+            updateSubjectDisplay(val.trim(), subInfo);
+        } else {
+            // যদি কোড না মেলে তবে ডিসপ্লে ডিফল্ট করে দেওয়া (ঐচ্ছিক কিন্তু ভালো প্র্যাকটিস)
+            document.getElementById("subDisplayCode").innerText = "---";
+            document.getElementById("subDisplayName").innerText = "---";
+        }
     }
 
     function updateSubjectDisplay(code, info) {
@@ -297,56 +338,118 @@
     }
 
     function initDropdowns() {
-        const fill = (id, list) => { 
-            const s = document.getElementById(id); 
-            if(!s) return;
-            list.forEach(i => { const o = document.createElement("option"); o.value = i; o.innerText = i; s.appendChild(o); }); 
-        };
         fill("specInst", ["Pirgonj Polytechnic Institute", "Ranisonkoil Polytechnic Institute", "Ranisankail Ideal Non-Govt. Polytechnic Institute"]);
-        fill("specTech", ["(64) Civil", "(67) Electrical", "(70) Mechanical", "(85) Computer"]);
-        fill("specSemi", ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]);
+        fill("specTech", ["(64) Civil", "(66) Computer", "(67) Electrical", "(70) Mechanical", "(85) Computer"]);
+        fill("specSemi", ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]);
         fill("specSyllabus", ["2022", "2016"]);
     }
 
-    function showDetails(roll) {
-        const s = currentStudents.find(x => x.roll == roll);
-        Swal.fire({ title: 'Profile', html: `<div class="text-start p-2"><strong>Name:</strong> ${s.name}<br><strong>Roll:</strong> ${s.roll}<br><strong>Subjects:</strong> ${s.allSubjects}</div>` });
+    function fill(id, list){
+        const s = document.getElementById(id); 
+        if(!s) return;
+        list.forEach(i => { const o = document.createElement("option"); o.value = i; o.innerText = i; s.appendChild(o); }); 
     }
 
+function showDetails(roll) {
+    const student = currentStudents.find(s => s.roll.toString() === roll.toString());
+
+    if (!student) {
+        Swal.fire("Error", "শিক্ষার্থীর তথ্য পাওয়া যায়নি!", "error");
+        return;
+    }
+
+    // টেকনোলজি কোড বের করা (যেমন: "(85) Computer" থেকে "85")
+    const techMatch = student.dept.toString().trim().match(/\d+/);
+    const techCode = techMatch ? techMatch[0] : "";
+    
+    const currentSemi = (student.semi || "").toString().trim(); 
+    const studentSubList = (student.subcodes || "").toString().split(',').map(s => s.trim());
+
+    let currentSemesterRows = "";
+    let referredRows = "";
+
+    studentSubList.forEach(code => {
+        
+        const sub = allSubjectsData.find(s => 
+            s && s.code.toString().trim() === code && s.deptCode.toString().trim() === techCode
+        );
+
+        if (sub) {
+            const subSemi = (sub.semi || "").toString().trim();
+            const isReferred = (subSemi !== currentSemi);
+
+            const rowHtml = `
+                <tr style="font-size: 13px;">
+                    <td class="fw-bold">${code}</td>
+                    <td class="text-start">${sub.name || 'Unknown'}</td>
+                    <td><span class="badge ${isReferred ? 'bg-danger' : 'bg-primary'}">${subSemi}</span></td>
+                    <td>${sub.tf || 0} + ${sub.pf || 0}</td>
+                </tr>`;
+
+            if (isReferred) referredRows += rowHtml;
+            else currentSemesterRows += rowHtml;
+        } else {
+            referredRows += `<tr class="table-light"><td class="fw-bold">${code}</td><td class="text-muted text-start">Not matched with Dept: ${techCode}</td><td>-</td><td>-</td></tr>`;
+        }
+    });
+
+    Swal.fire({
+        title: `Examinee Profile`,
+        width: '750px',
+        html: `
+            <div class="text-start mb-3" style="font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px; border-left: 5px solid #1e3a5f;">
+                <div class="row">
+                    <div class="col-md-6"><strong>Name:</strong> ${student.name}</div>
+                    <div class="col-md-6"><strong>Roll:</strong> ${student.roll}</div>
+                    <div class="col-md-6"><strong>Technology:</strong> ${student.dept}</div>
+                    <div class="col-md-6"><strong>Current Semi:</strong> <span class="badge bg-dark">${student.semi}</span></div>
+                    <div class="col-md-6"><strong>Institute:</strong> ${student.inst}</div>
+                    <div class="col-md-6"><strong>Type:</strong> ${student.type}</div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <h6 class="text-primary text-start border-bottom pb-1">Current Semi Subjects</h6>
+                <table class="table table-sm table-bordered mb-3">
+                    <thead class="table-light"><tr><th>Code</th><th>Subject Name</th><th>Semi</th><th>T+P</th></tr></thead>
+                    <tbody>${currentSemesterRows || '<tr><td colspan="4">No current semester subjects</td></tr>'}</tbody>
+                </table>
+                ${referredRows ? `
+                    <h6 class="text-danger text-start border-bottom pb-1 mt-3">Referred Subjects</h6>
+                    <table class="table table-sm table-hover table-bordered">
+                        <thead class="table-light"><tr><th>Code</th><th>Subject Name</th><th>Semi</th><th>T+P</th></tr></thead>
+                        <tbody class="table-warning">${referredRows}</tbody>
+                    </table>
+                ` : ''}
+            </div>
+        `,
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1e3a5f'
+    });
+}
+
+
 function filterSearch() {
-    // ড্রপডাউন থেকে ভ্যালুগুলো সংগ্রহ করা
     const inst = document.getElementById("specInst").value;
     const tech = document.getElementById("specTech").value;
     const semi = document.getElementById("specSemi").value;
     const syllabus = document.getElementById("specSyllabus").value;
 
-    // অন্তত একটি ফিল্টার সিলেক্ট করা হয়েছে কি না চেক করা
-    if (!inst && !tech && !semi && !syllabus) {
-        Swal.fire("দয়া করে অন্তত একটি অপশন সিলেক্ট করুন।");
-        return;
-    }
-
     Swal.fire({ title: 'ফিল্টার করা হচ্ছে...', didOpen: () => Swal.showLoading() });
 
-    // API URL তৈরি করা (প্যারামিটার সহ)
     const params = new URLSearchParams({
-        action: "filterSearch",
-        inst: inst,
-        tech: tech,
-        semi: semi,
-        syllabus: syllabus
+        action: "specificSearch", inst: inst, tech: tech, semi: semi, syllabus: syllabus
     });
 
     fetch(`${API_URL}?${params.toString()}`)
         .then(r => r.json())
         .then(res => {
+            console.log(res);
             Swal.close();
             if (res.students && res.students.length > 0) {
                 currentStudents = res.students;
                 renderTable(currentStudents);
                 genSummary(currentStudents);
                 
-                // সাবজেক্ট ডিসপ্লে ক্লিয়ার করা (যেহেতু অনেক সাবজেক্টের স্টুডেন্ট আসতে পারে)
                 document.getElementById("subDisplayCode").innerText = "Multiple/Filtered";
                 document.getElementById("subDisplayName").innerText = "Filtered Results";
             } else {
@@ -361,6 +464,31 @@ function filterSearch() {
             Swal.fire("Error", "সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।", "error");
         });
 }
+
+function toggleMoreButtons(btn) {
+    const extraButtons = document.querySelectorAll('.extra-btn');
+    const isHidden = extraButtons[0].classList.contains('d-none');
+
+    if (isHidden) {
+        extraButtons.forEach(el => el.classList.remove('d-none'));
+        btn.innerHTML = "Less Buttons (-)";
+        btn.classList.add('text-secondary'); 
+    } else {
+        extraButtons.forEach(el => el.classList.add('d-none'));
+        btn.innerHTML = "More Buttons (+)";
+        btn.classList.remove('text-secondary');
+    }
+}
+
+
+function downloadCenterFee() {
+    Swal.fire("Center Fee", "সেন্টার ফি ক্যালকুলেশনের লজিকটি এখনও সেট করা হয়নি।", "info");
+}
+
+function downloadSeatPlan() {
+    Swal.fire("Seat Plan", "সীট প্ল্যান ডিজাইনের কাজ শীঘ্রই শুরু হবে।", "info");
+}
+
 
 
 </script>
