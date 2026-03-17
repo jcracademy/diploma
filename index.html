@@ -10,8 +10,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>  
 
@@ -121,7 +119,7 @@
                 <div class="col"><button class="btn btn-sm btn-outline-danger w-100" onclick="showPracticalExamineesTable()">Practical List</button></div>
                 
                 <div class="col extra-btn d-none">
-                    <button class="btn btn-sm btn-outline-primary w-100" onclick="downloadCenterFee()">Center Fee</button>
+                    <button class="btn btn-sm btn-outline-primary w-100" onclick="calculateCenterFee()">Center Fee</button>
                 </div>
                 <div class="col extra-btn d-none">
                     <button class="btn btn-sm btn-outline-primary w-100" onclick="downloadSeatPlan()">Seat Plan</button>
@@ -152,7 +150,7 @@
         </div>
     </div>
 </div>
-
+<script src="exceljs.min.js"></script>
 <script src="report.js"></script> 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxnmUcuFVLLK7pg9NsP8YVtC9LFjvhVMOV7vt08MWX09MIKl9LuNgZX4LXmR7jvHoZZ/exec"; 
@@ -352,15 +350,7 @@
 
 function showDetails(roll) {
     const student = currentStudents.find(s => s.roll.toString() === roll.toString());
-
-    if (!student) {
-        Swal.fire("Error", "শিক্ষার্থীর তথ্য পাওয়া যায়নি!", "error");
-        return;
-    }
-
-    // টেকনোলজি কোড বের করা (যেমন: "(85) Computer" থেকে "85")
-    const techMatch = student.dept.toString().trim().match(/\d+/);
-    const techCode = techMatch ? techMatch[0] : "";
+    const techCode = student.dept.toString().trim().match(/\d+/)[0];
     
     const currentSemi = (student.semi || "").toString().trim(); 
     const studentSubList = (student.subcodes || "").toString().split(',').map(s => s.trim());
@@ -369,13 +359,10 @@ function showDetails(roll) {
     let referredRows = "";
 
     studentSubList.forEach(code => {
-        
-        const sub = allSubjectsData.find(s => 
-            s && s.code.toString().trim() === code && s.deptCode.toString().trim() === techCode
-        );
+        const sub = allSubjectsData.find(s => s.code.toString().trim() === code && s.deptCode.toString().trim() === techCode);
 
         if (sub) {
-            const subSemi = (sub.semi || "").toString().trim();
+            const subSemi = sub.semi.toString().trim();
             const isReferred = (subSemi !== currentSemi);
 
             const rowHtml = `
@@ -394,8 +381,7 @@ function showDetails(roll) {
     });
 
     Swal.fire({
-        title: `Examinee Profile`,
-        width: '750px',
+        title: `Examinee Profile`,  width: '750px',
         html: `
             <div class="text-start mb-3" style="font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px; border-left: 5px solid #1e3a5f;">
                 <div class="row">
@@ -480,15 +466,168 @@ function toggleMoreButtons(btn) {
     }
 }
 
+function calculateCenterFee() {
+    const selectedInst = document.getElementById("specInst").value;
+    if (!selectedInst) { Swal.fire("Warning", "দয়া করে আগে একটি Institute সিলেক্ট করুন।", "warning"); return;}
 
-function downloadCenterFee() {
-    Swal.fire("Center Fee", "সেন্টার ফি ক্যালকুলেশনের লজিকটি এখনও সেট করা হয়নি।", "info");
+    const instStudents = currentStudents.filter(s => s.inst === selectedInst);
+    if (instStudents.length === 0) { Swal.fire("Error", "এই প্রতিষ্ঠানের কোনো পরীক্ষার্থী খুঁজে পাওয়া যায়নি।", "error"); return;}
+
+    let grandTotal = 0;
+
+    const reportRows = instStudents.map(student => {
+        let pFee = 0;
+        let qFee = 0;
+        let referredFee = 0;
+        let basicFee = 0;
+
+        const stuSemi = student.semi;
+        const techCode = student.dept?.toString().trim().match(/\d+/)?.[0] || "";
+        const subCodes = student.subcodes ? student.subcodes.toString().split(',').map(c => c.trim()) : [];
+        let semiAndPracInfo = analyzeSemesterAndPractical(stuSemi, techCode, subCodes);
+        let semiNos = semiAndPracInfo.semiNos;
+        let hasPractical = semiAndPracInfo.hasPractical;
+        
+        if(parseInt(stuSemi) < 8){            //তবে ৯ম সেমিস্টারের ব্যাপারটা ভেবে দেখা দরকার... 
+            basicFee = 500; qFee = 50; pFee = 0; referredFee = (semiNos - 1) * 250; 
+            if(hasPractical){ pFee = (hasPractical.pracSubs)*40;}
+        }else{basicFee = 300; qFee = semiNos > 1 ? 50 : 0;  pFee = 0;}
+
+        let rowTotal = (basicFee + referredFee + pFee + qFee);
+        grandTotal += rowTotal;
+
+        return {
+            roll: student.roll, semi:student.semi, technology: student.dept, name: student.name, subcodes:student.subcodeDetails,
+            basic: basicFee + referredFee, practical: pFee, question: qFee, total: basicFee + referredFee +pFee +qFee
+        };
+    });
+    showFeeSummaryModal(selectedInst, reportRows, grandTotal);
 }
 
-function downloadSeatPlan() {
-    Swal.fire("Seat Plan", "সীট প্ল্যান ডিজাইনের কাজ শীঘ্রই শুরু হবে।", "info");
+function analyzeSemesterAndPractical(semi, techCode, subCodes) {
+    const pracSemesters = new Set([1,2,4,6]);
+    const uniqueSemesters = new Set();
+
+    const subjects= subCodes.map(code => {
+        return allSubjectsData.find( s => s.code === code && s.deptCode === techCode);
+    }).filter(Boolean);
+    
+    subjects.forEach(sub => uniqueSemesters.add(sub.semi.toString().trim()));
+
+    if (!pracSemesters.has(parseInt(semi))) {return {semiNos: uniqueSemesters.size, hasPractical: false}}
+
+    const currentSemiSubs = subjects.filter(sub => sub.semi.toString() === semi);
+
+    if (currentSemiSubs.length > 0 && currentSemiSubs.length >= parseInt(currentSemiSubs[0].nos)) {
+        const pracSubsCount = currentSemiSubs.filter(sub => sub.pf).length;
+        return {semiNos: uniqueSemesters.size, hasPractical: { pracSubs: pracSubsCount }}
+    }
+
+    return {semiNos: uniqueSemesters.size, hasPractical: false}
 }
 
+
+function showFeeSummaryModal(instName, rows, grandTotal) {
+    let tableRows = rows.map(r => `
+        <tr style="font-size: 12px;">
+            <td>${r.roll}</td>
+            <td class="text-start">${r.name.substring(0, 15)}..</td>
+            <td>${r.basic}</td>
+            <td>${r.practical}</td>
+            <td>${r.question}</td>
+            <td class="fw-bold">${r.total}</td>
+        </tr>
+    `).join('');
+
+    Swal.fire({
+        title: `Center Fee: ${instName}`,  width: '850px',
+        html: `
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-dark">
+                        <tr> <th>Roll</th> <th>Name</th> <th>Center+Ref</th> <th>Prac</th> <th>Ques</th> <th>Total</th> </tr>
+                    </thead>
+                    <tbody> ${tableRows} </tbody>
+                    <tfoot class="table-light">
+                        <tr> <th colspan="5" class="text-end">Grand Total:</th> <th class="text-danger">${grandTotal} TK</th> </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `,
+        showCancelButton: true, confirmButtonText: 'Download Excel', cancelButtonText: 'Close',  confirmButtonColor: '#198754'
+    }).then((result) => {
+        if (result.isConfirmed) {  exportFeeToExcel(instName, rows);}
+    });
+}
+
+async function exportFeeToExcel(instName, rows) {
+    // ১. নতুন ওয়ার্কবুক তৈরি
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Center_Fee');
+
+    // ২. কলামের হেডার এবং উইডথ সেট করা
+    worksheet.columns = [
+        { header: "Roll No", key: "roll", width: 12 },
+        { header: "Semi", key: "semi", width: 8 },
+        { header: "Technology", key: "technology", width: 20 },
+        { header: "Student Name", key: "name", width: 30 },
+        { header: "Sub Codes", key: "subcodes", width: 45 },
+        { header: "Theo. Fee", key: "basic", width: 12 },
+        { header: "Prac. Fee", key: "practical", width: 12 },
+        { header: "Qu. Fee", key: "question", width: 10 },
+        { header: "Total Fee", key: "total", width: 15 }
+    ];
+
+    // ৩. হেডার রো স্টাইল করা (বোল্ড ও ব্যাকগ্রাউন্ড কালার)
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '2c3e50' } // নেভি ব্লু কালার
+    };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // ৪. ডাটা যোগ করা
+    rows.forEach(r => {
+        const row = worksheet.addRow(r);
+        
+        // সব সেলে বর্ডার এবং নির্দিষ্ট এলাইনমেন্ট দেওয়া
+        row.eachCell((cell, colNumber) => {
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+            
+            // ফি এবং রোলের কলামগুলো সেন্টারে রাখা
+            if ([1, 2, 6, 7, 8, 9].includes(colNumber)) {
+                cell.alignment = { horizontal: 'center' };
+            }
+        });
+    });
+
+    // ৫. গ্র্যান্ড টোটাল রো যোগ করা
+    const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
+    const footerRow = worksheet.addRow({ 
+        subcodes: "Grand Total:", 
+        total: grandTotal 
+    });
+    
+    footerRow.getCell('subcodes').font = { bold: true };
+    footerRow.getCell('total').font = { bold: true, color: { argb: 'FF0000' } }; // লাল কালার
+
+    // ৬. ফাইল ডাউনলোড প্রসেস
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `Center_Fee_${instName.substring(0, 15).replace(/\s/g, '_')}.xlsx`;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+}
 
 
 </script>
