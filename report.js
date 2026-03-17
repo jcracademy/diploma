@@ -1,23 +1,80 @@
 
-function downloadRolls() {
+async function downloadRolls() {
+    // ১. চেক করা হচ্ছে ডাটা আছে কি না
     if (currentStudents.length === 0) {
-        Swal.fire("ডেটা নেই", "প্রথমে সার্চ করে লিস্ট লোড করুন।", "warning");
+        Swal.fire("ডেটা নেই", "প্রথমে সার্চ করে স্টুডেন্ট লিস্ট লোড করুন।", "warning");
         return;
     }
 
-    const data = currentStudents.map(function(s) {
-        return { "SL No": s.sl, "Roll No": s.roll };
+    // ২. লোডিং এনিমেশন
+    Swal.fire({
+        title: 'Excel ফাইল তৈরি হচ্ছে...',
+        didOpen: () => { Swal.showLoading(); }
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Roll_List");
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Roll List');
 
-    const subCode = document.getElementById("subDisplayCode").innerText || "Export";
-    XLSX.writeFile(wb, subCode + "_Rolls.xlsx");
+        // ৩. হেডার কলাম তৈরি এবং ডিজাইন (SL এবং Roll)
+        worksheet.columns = [
+            { header: 'SL No', key: 'sl', width: 10 },
+            { header: 'Roll Number', key: 'roll', width: 20 }
+        ];
+
+        // হেডারের স্টাইল (বোল্ড এবং ব্যাকগ্রাউন্ড কালার)
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: '4F81BD' } // নীল রঙের হেডার
+        };
+        worksheet.getRow(1).alignment = { horizontal: 'center' };
+
+        // ৪. ডাটা ইনসার্ট করা
+        currentStudents.forEach((student, index) => {
+            const row = worksheet.addRow({
+                sl: student.sl || (index + 1), // যদি sl না থাকে তবে ইনডেক্স ব্যবহার করবে
+                roll: student.roll
+            });
+
+            // ডাটা এলাইনমেন্ট (সেন্টার)
+            row.alignment = { horizontal: 'center' };
+            
+            // বর্ডার দেওয়া (ঐচ্ছিক)
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+        });
+
+        // ৫. ফাইল তৈরি এবং ডাউনলোড
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        // ফাইলের নাম নির্ধারণ (Subject Code থাকলে সেটা দিয়ে হবে)
+        const subCode = document.getElementById("subDisplayCode").innerText || "Roll_List";
+        a.href = url;
+        a.download = `Roll_List_${subCode}.xlsx`;
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        Swal.close();
+        Swal.fire("সফল!", "SL এবং Roll লিস্ট ডাউনলোড হয়েছে।", "success");
+
+    } catch (error) {
+        console.error(error);
+        Swal.fire("Error", "ফাইল তৈরি করতে সমস্যা হয়েছে।", "error");
+    }
 }
 
-function downloadSeatLabels() {
+async function downloadSeatLabels() {
     if (currentStudents.length === 0) {
         Swal.fire("ডেটা নেই", "প্রথমে সার্চ করে লিস্ট লোড করুন।", "warning");
         return;
@@ -25,44 +82,97 @@ function downloadSeatLabels() {
 
     Swal.fire({
         title: 'Excel ফাইল তৈরি হচ্ছে...',
-        didOpen: function() { Swal.showLoading(); }
+        didOpen: () => { Swal.showLoading(); }
     });
 
-    const rows = [];
-    const centerName = "Pirgonj Govt. Technical School And College";
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Seat Labels');
+
+    const centerName = "Pirgonj Govt. Technical School & College";
     const examTitle = "Diploma in Engineering Examination 2026";
 
-    for (let i = 0; i < currentStudents.length; i += 3) {
-        const s1 = currentStudents[i] || { dept: "", roll: "" };
-        const s2 = currentStudents[i + 1] || { dept: "", roll: "" };
-        const s3 = currentStudents[i + 2] || { dept: "", roll: "" };
+    // কলামের প্রশস্ততা সেট করা
+    worksheet.columns = [
+        { width: 18 }, { width: 20 }, { width: 3 }, { width: 18 }, { width: 20 }, { width: 3 }, { width: 18 }, { width: 20}              
+    ];
 
-        rows.push({ "Col 1": centerName, "Col 2": centerName, "Col 3": centerName });
-        rows.push({ "Col 1": examTitle, "Col 2": examTitle, "Col 3": examTitle });
-        rows.push({ 
-            "Col 1": s1.dept ? "(" + s1.dept + ")" : "", 
-            "Col 2": s2.dept ? "(" + s2.dept + ")" : "", 
-            "Col 3": s3.dept ? "(" + s3.dept + ")" : "" 
+    let currentRow = 1;
+
+    for (let i = 0; i < currentStudents.length; i += 3) {
+        const students = [ currentStudents[i], currentStudents[i + 1], currentStudents[i + 2] ];
+
+        const row1 = worksheet.getRow(currentRow);
+        const row2 = worksheet.getRow(currentRow + 1);
+        const row3 = worksheet.getRow(currentRow + 2);
+        const row4 = worksheet.getRow(currentRow + 3);
+
+        students.forEach((student, index) => {
+            if (!student) return;
+
+            const startCol = index * 3 + 1; // ১ম কার্ড ১ থেকে, ২য় কার্ড ৪ থেকে...
+
+            // ক. সেন্টার নেম (Merge & Center)
+            worksheet.mergeCells(currentRow, startCol, currentRow, startCol + 1);
+            const cellTitle = worksheet.getCell(currentRow, startCol);
+            cellTitle.value = centerName;
+            cellTitle.font = { size: 10, bold: true };
+            cellTitle.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // খ. এক্সাম টাইটেল (Merge & Center)
+            worksheet.mergeCells(currentRow + 1, startCol, currentRow + 1, startCol + 1);
+            const cellExam = worksheet.getCell(currentRow + 1, startCol);
+            cellExam.value = examTitle;
+            cellExam.font = { size: 11, bold: true };
+            cellExam.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // গ. ডিপার্টমেন্ট (Left Box)
+            const cellDept = worksheet.getCell(currentRow + 2, startCol);
+            cellDept.value = `(${student.dept || '64'}) Civil`;
+            cellDept.font = { size: 10 };
+            cellDept.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // ঘ. রেগুলার স্ট্যাটাস (Bottom Left Box)
+            const cellStatus = worksheet.getCell(currentRow + 3, startCol);
+            cellStatus.value = "Regular";
+            cellStatus.font = { size: 10 };
+            cellStatus.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // ঙ. রোল নাম্বার (Right Large Box)
+            worksheet.mergeCells(currentRow + 2, startCol + 1, currentRow + 3, startCol + 1);
+            const cellRoll = worksheet.getCell(currentRow + 2, startCol + 1);
+            cellRoll.value = student.roll;
+            cellRoll.font = { size: 24, bold: true };
+            cellRoll.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // চ. বর্ডার সেট করা
+            for (let r = 0; r <= 3; r++) {
+                for (let c = 0; c <= 1; c++) {
+                    worksheet.getCell(currentRow + r, startCol + c).border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                }
+            }
         });
-        rows.push({ 
-            "Col 1": "Regular - " + s1.roll, 
-            "Col 2": "Regular - " + s2.roll, 
-            "Col 3": "Regular - " + s3.roll 
-        });
-        rows.push({ "Col 1": "", "Col 2": "", "Col 3": "" });
+
+        currentRow += 5; 
     }
 
-    const ws = XLSX.utils.json_to_sheet(rows, { skipHeader: true });
-    ws['!cols'] = [{ wch: 35 }, { wch: 35 }, { wch: 35 }];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Seat_Labels");
-
-    const subCode = document.getElementById("subDisplayCode").innerText || "Export";
-    XLSX.writeFile(wb, subCode + "_Seat_Labels.xlsx");
+    // ফাইল ডাউনলোড
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    const subCode = document.getElementById("subDisplayCode")?.innerText || "Export";
+    anchor.download = `${subCode}_Seat_Labels.xlsx`;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
 
     Swal.close();
-    Swal.fire("সফল!", "Excel ফাইলটি ডাউনলোড হয়েছে।", "success");
+    Swal.fire("সফল!", "Excel ফাইলটি তৈরি হয়েছে।", "success");
 }
 
 function downloadRoutine() {
@@ -181,40 +291,37 @@ function downloadQuestionCountPDF() {
 }
 
 function showPracticalExamineesTable() {
-    const pracSemesters = new Set([1, 2, 4, 6]); 
+    const practicalExaminees = getPracticalExaminees(currentStudents)
 
-    const practicalExaminees = currentStudents.filter(stu => {
+    if (practicalExaminees.length > 0) {
+        renderTable(practicalExaminees);
+        document.getElementById("subDisplayCode").innerText = "Practical List";
+
+        Swal.fire("সফল!", `মোট ${practicalExaminees.length} জন ব্যবহারিক পরীক্ষার্থী পাওয়া গেছে।`, "success");
+
+    } else {Swal.fire("দুঃখিত", "কোনো ব্যবহারিক পরীক্ষার্থী পাওয়া যায়নি।", "info");}
+}
+
+function getPracticalExaminees(studentsList) {
+    const pracSemesters = new Set([1, 2, 4, 6]); 
+    const practicalExaminees = studentsList.filter(stu => {
+
         const currentSemi = (stu.semi || "").toString().trim();
         const semiNumber = parseInt(currentSemi);
         if (!pracSemesters.has(semiNumber)) return false;
 
-        const syllabus = (stu.syllabus || "").toString().trim();
         const techCode = stu.dept?.toString().trim().match(/\d+/)?.[0] || "";
         const studentSubList = stu.subcodes ? stu.subcodes.toString().split(',').map(c => c.trim()) : [];
 
-        let requiredCount = 0;
-        const currentSemiSubsOnly = studentSubList.filter(code => {
-            const subInfo = allSubjectsData.find(sub => 
-                sub.code === code && 
-                sub.deptCode === techCode && 
-                sub.semi === currentSemi &&
-                sub.syllabus.toString().trim() === syllabus
-            );
-            
-            if (subInfo && requiredCount < 1) { requiredCount = parseInt(subInfo.nos);}
+        let semiSubNos = 0;
+        const currentSemiSubCount = studentSubList.filter(code => {
+            const subInfo = allSubjectsData.find(sub => sub.code === code &&   sub.deptCode === techCode &&  sub.semi === currentSemi);     
+            if (subInfo && semiSubNos < 1) { semiSubNos = parseInt(subInfo.nos);}
             return subInfo;
         });
-        return currentSemiSubsOnly.length >= requiredCount && requiredCount > 0;
+        return currentSemiSubCount.length >= semiSubNos && semiSubNos > 0;
     });
-
-    if (practicalExaminees.length > 0) {
-        currentStudents = practicalExaminees;
-        renderTable(practicalExaminees);
-        document.getElementById("subDisplayCode").innerText = "Practical List";
-        Swal.fire("সফল!", `মোট ${currentStudents.length} জন ব্যবহারিক পরীক্ষার্থী পাওয়া গেছে।`, "success");
-    } else {
-        Swal.fire("দুঃখিত", "কোনো ব্যবহারিক পরীক্ষার্থী পাওয়া যায়নি।", "info");
-    }
+    return practicalExaminees.length? practicalExaminees : [];
 }
 
 
