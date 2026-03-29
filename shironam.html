@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shironam Potro - Diploma Exam System</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <style>
+        body { background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; padding-bottom: 50px; }
+        .sticky-header {
+            position: sticky; top: 0; background: #f4f6f9; z-index: 1000;
+            padding-top: 15px; padding-bottom: 5px; border-bottom: 2px solid #ddd; margin-bottom: 10px;
+        }
+        .header { font-size: 26px; font-weight: bold; color: #2c3e50; }
+        .subject-box {padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; background: white; min-height: 310px;}
+        .table-wrapper { height: 220px; overflow-y: auto; margin-top: 10px; border-radius: 4px; border: 1px solid #eee; }
+        .subject-box h5 { font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .info-label { font-weight: bold; color: #555; font-size: 0.85rem; }
+        .info-value { font-weight: bold; color: #000; font-size: 1rem; }
+        .badge-count { float: right; background: #f8f9fa; padding: 2px 8px; border-radius: 10px; font-size: 0.9rem; border: 1px solid #ddd;}
+        
+        /* Pagination Styling */
+        .pagination-wrapper { background: #fff; padding: 12px; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
+        .page-link { cursor: pointer; }
+        
+        /* Search Box */
+        .search-box { max-width: 300px; border-color: #0d6efd; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sticky-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="header"> শিরোনাম পত্র </div>
+                <div class="fs-6 text-secondary"> Pirganj Govt. Technical School And College (12144) </div>
+            </div>
+            <div>
+                <button class="btn btn-success me-2 shadow-sm" onclick="downloadShironam()"> Download Excel </button>
+                <button class="btn btn-outline-danger" onclick="window.history.back()"> Back </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <div class="row align-items-center text-center">
+                <div class="col-md-5 border-end text-start">
+                    <div class="info-label mb-1">পরীক্ষার নাম নির্বাচন করুন</div>
+                    <select id="examNameSelect" class="form-select form-select-sm fw-bold text-primary border-primary">
+                        <option value="Diploma in Engineering 1st Sem Final Exam-2026">Diploma in Engineering 1st Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 2nd Sem Final Exam-2026">Diploma in Engineering 2nd Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 3rd Sem Final Exam-2026">Diploma in Engineering 3rd Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 4th Sem Final Exam-2026">Diploma in Engineering 4th Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 5th Sem Final Exam-2026">Diploma in Engineering 5th Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 6th Sem Final Exam-2026">Diploma in Engineering 6th Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 7th Sem Final Exam-2026">Diploma in Engineering 7th Sem Final Exam-2026</option>
+                        <option value="Diploma in Engineering 8th Sem Final Exam-2026">Diploma in Engineering 8th Sem Final Exam-2026</option>
+                    </select>
+                </div>
+                <div class="col-md-3 border-end">
+                    <div class="info-label">বিষয় (পত্রসহ)</div>
+                    <div id="displaySubName" class="info-value">---</div>
+                </div>
+                <div class="col-md-2 border-end">
+                    <div class="info-label">বিষয় কোড</div>
+                    <div id="displaySubCode" class="info-value">---</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="info-label">পরীক্ষার তারিখ</div>
+                    <div id="displayDate" class="info-value">---</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="subject-box shadow-sm">
+                <h5>অনুপস্থিত (Absent) <span id="absentCount" class="badge-count text-danger">0</span></h5>
+                <div class="table-wrapper">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th>Action</th></tr></thead>
+                        <tbody id="absentBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="subject-box shadow-sm">
+                <h5>ভুল বৃত্ত (Vul Britto) <span id="vulCount" class="badge-count text-primary">0</span></h5>
+                <div class="table-wrapper">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th>Action</th></tr></thead>
+                        <tbody id="vulBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="subject-box shadow-sm">
+                <h5>বহিষ্কৃত (Expel) <span id="expelCount" class="badge-count text-danger">0</span></h5>
+                <div class="table-wrapper">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th>Action</th></tr></thead>
+                        <tbody id="expelBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center py-3">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+                <span>উপস্থিত পরীক্ষার্থীর তালিকা</span>
+                <input type="text" id="rollSearch" class="form-control form-control-sm search-box" placeholder="রোল দিয়ে খুঁজুন..." onkeyup="handleSearch()">
+            </div>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="sortPresentTable('asc')">Sort ↑</button>
+                <button class="btn btn-sm btn-outline-primary me-2" onclick="sortPresentTable('desc')">Sort ↓</button>
+                <span id="totalCount" class="badge bg-primary fs-6">Present: 0</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle text-center mb-0">
+                    <thead class="table-light">
+                        <tr><th>SL</th><th>Roll</th><th class="text-start">Name</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="mytbody"></tbody>
+                </table>
+            </div>
+            <div class="pagination-wrapper d-flex justify-content-between align-items-center">
+                <div id="pageInfo" class="small text-secondary fw-bold">Showing 0 to 0 of 0</div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item"><button class="page-link" onclick="changePage(-1)">Previous</button></li>
+                        <li class="page-item"><button class="page-link" onclick="changePage(1)">Next</button></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    let presentStudents = []; 
+    let filteredStudents = []; // সার্চ এবং পেজিনেশনের জন্য
+    let absentList = [];
+    let vulList = [];
+    let expelList = [];
+    let examInfo = {};
+
+    // Pagination Settings
+    let currentPage = 1;
+    const rowsPerPage = 100;
+
+    window.onload = function() {
+        try {
+            const storedStudents = sessionStorage.getItem('currentStudents');
+            const storedExamInfo = sessionStorage.getItem('currentExamInfo');
+            if (storedStudents && storedExamInfo) {
+                presentStudents = JSON.parse(storedStudents);
+                examInfo = JSON.parse(storedExamInfo);
+                document.getElementById('displaySubName').innerText = examInfo.subName || '---';
+                document.getElementById('displaySubCode').innerText = examInfo.subCode || '---';
+                document.getElementById('displayDate').innerText = examInfo.examDate || '---';
+                
+                filteredStudents = [...presentStudents]; // ইনিশিয়াল কপি
+                renderMainTable();
+            } else {
+                Swal.fire("Error", "No student data found!", "error");
+            }
+        } catch (e) { console.error("Init Error:", e); }
+    };
+
+    // ফাস্ট রেন্ডারিং ফাংশন
+    function renderMainTable() {
+        const tbody = document.getElementById("mytbody");
+        if (!tbody) return;
+
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const pageData = filteredStudents.slice(start, end);
+
+        const fragment = document.createDocumentFragment();
+        
+        pageData.forEach((s, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="small text-secondary">${start + index + 1}</td>
+                <td class="fw-bold text-primary">${s.roll || 'N/A'}</td>
+                <td class="text-start">${s.name || 'N/A'}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="handleAction('${s.roll}', 'absent')">Absent</button>
+                    <button class="btn btn-sm btn-outline-secondary mx-1" onclick="handleAction('${s.roll}', 'vul')">Vul Britto</button>
+                    <button class="btn btn-sm btn-danger" onclick="handleAction('${s.roll}', 'expel')">Expel</button>
+                </td>
+            `;
+            fragment.appendChild(tr);
+        });
+
+        tbody.innerHTML = "";
+        tbody.appendChild(fragment);
+        
+        updatePaginationUI();
+        document.getElementById("totalCount").innerText = "Present: " + presentStudents.length;
+    }
+
+    // সার্চ হ্যান্ডলার
+    function handleSearch() {
+        const term = document.getElementById("rollSearch").value.trim().toUpperCase();
+        currentPage = 1; 
+        filteredStudents = presentStudents.filter(s => String(s.roll).includes(term));
+        renderMainTable();
+    }
+
+    // পেজ পরিবর্তন
+    function changePage(dir) {
+        const maxPage = Math.ceil(filteredStudents.length / rowsPerPage);
+        const next = currentPage + dir;
+        if (next >= 1 && next <= maxPage) {
+            currentPage = next;
+            renderMainTable();
+        }
+    }
+
+    function updatePaginationUI() {
+        const total = filteredStudents.length;
+        const start = total === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currentPage * rowsPerPage, total);
+        document.getElementById("pageInfo").innerText = `Showing ${start} to ${end} of ${total}`;
+    }
+
+    function sortPresentTable(order) {
+        presentStudents.sort((a, b) => {
+            const rA = Number(a.roll) || 0;
+            const rB = Number(b.roll) || 0;
+            return order === 'asc' ? rA - rB : rB - rA;
+        });
+        handleSearch(); // সর্ট করার পর বর্তমান সার্চ অনুযায়ী ফিল্টার আপডেট
+    }
+
+    // মেইন লজিক হ্যান্ডলার
+    function handleAction(roll, type) {
+        const idx = presentStudents.findIndex(s => String(s.roll) === String(roll));
+        if (idx === -1) return;
+        const student = presentStudents[idx];
+
+        if (type === 'absent' || type === 'expel') {
+            if (type === 'absent') absentList.push(student);
+            else expelList.push(student);
+            
+            presentStudents.splice(idx, 1); // মেইন লিস্ট থেকে আউট
+        } else if (type === 'vul') {
+            if (!vulList.find(v => String(v.roll) === String(roll))) {
+                vulList.push(student);
+                // নোট: সে প্রেজেন্ট লিস্টে থাকবেই
+            } else {
+                Swal.fire("Note", "এই রোলটি অলরেডি ভুল বৃত্ত তালিকায় আছে।", "info");
+                return;
+            }
+        }
+        
+        handleSearch(); // টেবিল আপডেট
+        updateSubTables();
+    }
+
+    function updateSubTables() {
+        renderSub('absentBody', absentList, 'absent');
+        renderSub('vulBody', vulList, 'vul');
+        renderSub('expelBody', expelList, 'expel');
+        document.getElementById('absentCount').innerText = absentList.length;
+        document.getElementById('vulCount').innerText = vulList.length;
+        document.getElementById('expelCount').innerText = expelList.length;
+    }
+
+    function renderSub(id, list, type) {
+        const tbody = document.getElementById(id);
+        tbody.innerHTML = list.map((s, i) => `
+            <tr>
+                <td>${i+1}</td>
+                <td class="fw-bold">${s.roll}</td>
+                <td><button class="btn btn-dark btn-sm py-0" onclick="restoreStudent('${type}', ${i})">×</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function restoreStudent(type, index) {
+        if (type === 'absent') presentStudents.push(absentList.splice(index, 1)[0]);
+        else if (type === 'expel') presentStudents.push(expelList.splice(index, 1)[0]);
+        else if (type === 'vul') vulList.splice(index, 1);
+        
+        presentStudents.sort((a, b) => (Number(a.roll) || 0) - (Number(b.roll) || 0));
+        handleSearch();
+        updateSubTables();
+    }
+
+
+  function downloadShironam() {
+    const examName = document.getElementById('examNameSelect').value;
+    const subCode = examInfo.subCode || '---';
+    const subName = examInfo.subName || '---';
+    const examDate = examInfo.examDate || '---';
+    
+    Swal.fire({ title: 'Excel তৈরি হচ্ছে...', didOpen: () => { Swal.showLoading(); } });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Shironam');
+
+    worksheet.columns = [
+        { width: 6 }, { width: 8 }, { width: 9 }, { width: 9 }, { width: 9 }, 
+        { width: 9 }, { width: 9 }, { width: 14 }, { width: 12 }, { width: 6 }
+    ];
+
+    const addCenteredRow = (text, size, bold) => {
+        const row = worksheet.addRow([text]);
+        worksheet.mergeCells(`A${row.number}:J${row.number}`);
+        row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(1).font = { name: 'Nikosh', size: size, bold: bold };
+        return row;
+    };
+
+    addCenteredRow("বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা", 14, true);
+    addCenteredRow("উত্তরপত্রের কভার পৃষ্ঠার প্রতিটি বক্সের জন্য প্রথম অংশের", 10, false);
+    addCenteredRow("শিরোনাম পত্র", 18, true).getCell(1).font.underline = true;
+    worksheet.addRow([]);
+
+    const infoStyle = { name: 'Nikosh', size: 11, bold: true };
+    const labelStyle = { name: 'Nikosh', size: 11, bold: false };
+
+    // লাইন ১
+    const r1 = worksheet.addRow(["পরীক্ষার নামঃ", "", examName]);
+    worksheet.mergeCells(`A${r1.number}:B${r1.number}`);
+    worksheet.mergeCells(`C${r1.number}:J${r1.number}`);
+    r1.getCell(1).font = labelStyle; r1.getCell(3).font = infoStyle;
+
+    // লাইন ২: কেন্দ্র ও কেন্দ্র কোড
+    const r2 = worksheet.addRow(["পরীক্ষা কেন্দ্রঃ", "", "পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও", "", "", "", "", "কেন্দ্র কোডঃ", "১২১৪৪"]);
+    worksheet.mergeCells(`A${r2.number}:B${r2.number}`);
+    worksheet.mergeCells(`C${r2.number}:G${r2.number}`);
+    worksheet.mergeCells(`I${r2.number}:J${r2.number}`);
+    r2.getCell(1).font = labelStyle; r2.getCell(3).font = infoStyle; 
+    r2.getCell(8).font = labelStyle; r2.getCell(9).font = infoStyle;
+
+    // লাইন ৩: বিষয় ও বিষয় কোড
+    const r3 = worksheet.addRow(["পরীক্ষার বিষয় (পত্রসহ) :", "", "", subName, "", "", "", "বিষয় কোডঃ", subCode]);
+    worksheet.mergeCells(`A${r3.number}:C${r3.number}`);
+    worksheet.mergeCells(`D${r3.number}:G${r3.number}`);
+    worksheet.mergeCells(`I${r3.number}:J${r3.number}`);
+    r3.getCell(1).font = labelStyle; r3.getCell(4).font = infoStyle; 
+    r3.getCell(8).font = labelStyle; r3.getCell(9).font = infoStyle;
+
+    // লাইন ৪: তারিখ
+    const r4 = worksheet.addRow(["পরীক্ষার তারিখঃ", "", "", examDate + " খ্রি."]);
+    worksheet.mergeCells(`A${r4.number}:C${r4.number}`);
+    r4.getCell(1).font = labelStyle; r4.getCell(4).font = infoStyle;
+
+    worksheet.addRow([]);
+
+    const createBoxSection = (title, list, boxHeight) => {
+        const titleRow = worksheet.addRow([title]);
+        titleRow.getCell(1).font = { name: 'Nikosh', bold: true };
+
+        const text = list.length > 0 ? list.map(s => s.roll).join(', ') : "";
+        const row = worksheet.addRow([text]);
+        worksheet.mergeCells(`A${row.number}:J${row.number + boxHeight}`);
+        row.height = 25 * (boxHeight + 1); // Nikosh ফন্টের জন্য হাইট একটু বাড়ানো হয়েছে
+        row.getCell(1).alignment = { wrapText: true, vertical: 'top', padding: { top: 5, left: 5 } };
+        row.getCell(1).font = { name: 'Nikosh', size: 11 };
+        row.getCell(1).border = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+
+        const totalRow = worksheet.addRow(["", "", "", "", "", "মোটঃ", list.length, "", "", "জন"]);
+        worksheet.mergeCells(`G${totalRow.number}:I${totalRow.number}`);
+        totalRow.eachCell(cell => cell.font = { name: 'Nikosh' });
+        totalRow.getCell(6).alignment = { horizontal: 'right' };
+        totalRow.getCell(7).alignment = { horizontal: 'center' };
+        totalRow.getCell(7).font = { name: 'Nikosh', bold: true };
+        totalRow.getCell(7).border = { bottom: { style: 'dotted' } };
+        worksheet.addRow([]);
+    };
+
+    createBoxSection("বাক্সের প্রথম অংশের রোল নম্বর সমূহঃ", presentStudents, 4);
+    createBoxSection("ভুল বৃত্ত ভরাটকৃত রোল নম্বর সমূহ (সঠিকটি লিখুন):", vulList, 1);
+    createBoxSection("অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", absentList, 1);
+    createBoxSection("বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", expelList, 1);
+
+    const finalCountRow = worksheet.addRow(["উপস্থিত পরীক্ষার্থীর সংখ্যা :", "", "", "", presentStudents.length, "", "", "", "", "জন"]);
+    worksheet.mergeCells(`A${finalCountRow.number}:D${finalCountRow.number}`);
+    worksheet.mergeCells(`E${finalCountRow.number}:I${finalCountRow.number}`);
+    finalCountRow.eachCell(cell => cell.font = { name: 'Nikosh' });
+    finalCountRow.getCell(5).font = { name: 'Nikosh', bold: true };
+    finalCountRow.getCell(5).alignment = { horizontal: 'center' };
+    finalCountRow.getCell(5).border = { bottom: { style: 'dotted' } };
+    
+    worksheet.addRow([]); worksheet.addRow([]);
+
+    const signRow = worksheet.addRow(["প্রস্তুতকারীর স্বাক্ষর", "", "", "", "পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তা/কেন্দ্রঃ"]);
+    const signRow2 = worksheet.addRow(["__________________", "", "", "", "স্বাক্ষর ও সীলমোহর"]);
+    [signRow, signRow2].forEach(row => {
+        row.eachCell(cell => cell.font = { name: 'Nikosh', bold: true });
+    });
+    signRow2.getCell(5).alignment = { horizontal: 'center' };
+
+    worksheet.eachRow((row) => {
+        row.eachCell((cell) => {
+            if (cell.font) { cell.font.name = 'Nikosh'; } else { cell.font = { name: 'Nikosh' }; }
+        });
+    });
+
+    workbook.xlsx.writeBuffer()
+        .then(buffer => {
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Shironam_Potro_${subCode}.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            Swal.close();
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire("Error", "ফাইল তৈরিতে সমস্যা হয়েছে", "error");
+        });
+}
+
+</script>
+</body>
+</html>
