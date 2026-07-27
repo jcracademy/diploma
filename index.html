@@ -9,46 +9,24 @@
 
 <style>
   body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #004d26, #00713d, #8b0000, #004d26);
-    background-size: 200% 200%;
-    background-attachment: fixed;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    animation: movingGradient 60s ease infinite;
+    margin: 0; padding: 0; min-height: 100vh;
+    background: linear-gradient(135deg, #004d26, #00713d, #8b0000, #004d26); background-size: 200% 200%; background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; animation: movingGradient 60s ease infinite;
   }
 
-  /* অ্যানিমেশন ইফেক্ট */
   @keyframes movingGradient {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 
-/* Center content */
-.container {
-  position: relative;
-  z-index: 2;
-}
+.container {position: relative; z-index: 2;}
 
-/* Glass effect - ব্যাকগ্রাউন্ডের সাথে সামঞ্জস্য রেখে রিফাইন করা হয়েছে */
-.card {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 16px;
+.card { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 16px;
 }
 </style>
 </head>
-
 <body>
 
 <div class="container vh-100 d-flex justify-content-center align-items-center">
@@ -81,9 +59,6 @@
 </div>
 
 <script>
-// =====================
-// LOGIN FUNCTION
-// =====================
 const API_URL = "https://script.google.com/macros/s/AKfycbxnmUcuFVLLK7pg9NsP8YVtC9LFjvhVMOV7vt08MWX09MIKl9LuNgZX4LXmR7jvHoZZ/exec";
 
 function loginUser() {
@@ -92,10 +67,7 @@ function loginUser() {
   const msg = document.getElementById("msg");
   const btn = document.getElementById("loginBtn");
 
-  if (!uid || !pwd) {
-    msg.innerText = "Please enter ID and Password";
-    return;
-  }
+  if (!uid || !pwd) { msg.innerText = "Please enter ID and Password"; return;}
 
   msg.innerText = "Checking...";
   btn.disabled = true;
@@ -109,7 +81,6 @@ function loginUser() {
       localStorage.setItem('allSubjectsData', JSON.stringify(res.subjects));
       localStorage.setItem('routineData', JSON.stringify(res.routine));
       localStorage.setItem('lastFetchTime', Date.now());
-
       location.href = "diploma.html";
     } else {
       msg.innerText = "Invalid login!";
