@@ -11,8 +11,12 @@ function downloadRolls() {
 
         // Column Header Set
         worksheet.columns = [
-            { header: 'Code', key: 'code', width: 15 }, { header: 'Nos', key: 'nos', width: 10 },
-            { header: 'SL No', key: 'sl', width: 12 }, { header: 'Roll Number', key: 'roll', width: 20 }
+            { header: 'Code', key: 'code', width: 15 }, 
+            { header: 'Nos', key: 'nos', width: 10 }, 
+            { header: 'SL No', key: 'sl', width: 12 },
+            { header: 'Roll Number', key: 'roll', width: 20 }, 
+            { header: 'Type', key: 'type', width: 12 },
+            { header: 'Semi', key: 'semi', width: 12 }
         ];
 
         // Header Design
@@ -24,16 +28,47 @@ function downloadRolls() {
         const subCode = document.getElementById("subDisplayCode").innerText || "N/A";
         const totalExaminees = currentStudents.length;
 
-        // Data Insert
-        currentStudents.forEach((student, index) => {
-            const rowData = { sl: student.sl || (index + 1), roll: student.roll };
-            // rowData (Object) এর code & nos key তে কেবলমাত্র শুরুতে value যুক্ত হবে, পরে আর নয়... 
-            if (index === 0) { rowData.code = subCode; rowData.nos = totalExaminees; }
+        // --- প্রথমে Type এবং পরে Semi দিয়ে সর্ট করার লজিক ---
+        const sortedStudents = [...currentStudents].sort((a, b) => {
+            const typeA = String(a.type || '').trim();
+            const typeB = String(b.type || '').trim();
+
+            // ১. টাইপ অনুযায়ী তুলনা (Regular আগে, Irregular পরে)
+            const typeComparison = typeA.localeCompare(typeB);
+
+            // টাইপ যদি ভিন্ন হয়, তবে টাইপের ক্রমানুসারেই রিটার্ন হবে
+            if (typeComparison !== 0) {
+                return typeComparison; 
+            }
+
+            // ২. টাইপ যদি একই হয়, তবে semi অনুযায়ী সর্ট হবে
+            if (typeof a.semi === 'number' && typeof b.semi === 'number') {
+                return a.semi - b.semi;
+            }
+            return String(a.semi || '').localeCompare(String(b.semi || ''), undefined, { numeric: true });
+        });
+
+        // Data Insert (সর্ট করা sortedStudents ব্যবহার করা হয়েছে)
+        sortedStudents.forEach((student, index) => {
+            const rowData = { sl: student.sl || (index + 1), roll: student.roll, type: student.type, semi: student.semi };
+            
+            // rowData (Object) এর code & nos key তে কেবল মাত্র শুরুতে value যুক্ত হবে
+            if (index === 0) { 
+                rowData.code = subCode; 
+                rowData.nos = totalExaminees; 
+            }
+            
             const row = worksheet.addRow(rowData);
+            
             // Alignment & Border Set
             row.eachCell((cell, colNumber) => {
                 cell.alignment = { horizontal: 'center' };
-                cell.border = {  top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }  };
+                cell.border = { 
+                    top: { style: 'thin' }, 
+                    left: { style: 'thin' }, 
+                    bottom: { style: 'thin' }, 
+                    right: { style: 'thin' } 
+                };
             });
         });
 
@@ -50,17 +85,17 @@ function downloadRolls() {
 
                 window.URL.revokeObjectURL(url);
                 Swal.close();
-                Swal.fire("সফল!", "এক্সেল ফাইলটি তৈরি হয়েছে।", "success");
+                Swal.fire("সফল!", "রোলগুলো Download হয়েছে।", "success");
             })
             .catch(function (error) {
                 console.error(error);
                 Swal.fire("Error", "ফাইল তৈরি করতে সমস্যা হয়েছে।", "error");
             });
     } catch (error) {
-        console.error(error); Swal.fire("Error", "সিস্টেম এরর!", "error");
+        console.error(error); 
+        Swal.fire("Error", "সিস্টেম এরর!", "error");
     }
 }
-
 
 function downloadSeatLabels() {
     if (currentStudents.length === 0) {
@@ -73,8 +108,8 @@ function downloadSeatLabels() {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Seat Labels');
 
-        const centerName = "Pirgonj Govt. Technical School & College";
-        const examTitle = "Diploma in Engineering Examination 2026";
+        const centerName = "Pirganj Govt. Technical School & College";
+        const examTitle = "Diploma in Engineering Examination 2025";
 
         // কলামের প্রশস্ততা সেট করা
         worksheet.columns = [ { width: 18 }, { width: 20 }, { width: 3 },  { width: 18 }, 
@@ -314,270 +349,289 @@ function downloadRoutine() {
     }
 }
 
-
-
-function downloadQuestionCountPDF() {
+async function downloadQuestionCountExcel() {
     Swal.fire({
         title: 'Excel ফাইল তৈরি হচ্ছে...',
-        html: 'সার্ভার থেকে সকল ডাটা সংগ্রহ করা হচ্ছে।',
+        html: 'ডাটা প্রসেস করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন।',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    fetch(API_URL + "?action=specificSearch")
-        .then(response => response.json())
-        .then(res => {
-            const allStudents = res.students;
-            if (!allStudents || allStudents.length === 0) {
-                Swal.fire("Error", "No student data found.", "error");
-                throw new Error("No student data");
+    try {
+        // Local ডাটা আগে চেক করবে, না পেলে Fetch করবে
+        const allStudents = await getStudentDataSafely();
+
+        if (!allStudents || allStudents.length === 0) {
+            Swal.fire("Error", "কোনো স্টুডেন্ট ডাটা পাওয়া যায়নি।", "error");
+            return;
+        }
+
+        const subjectsList = Array.isArray(allSubjectsData) ? allSubjectsData : (allSubjectsData.subjects || []);
+
+        const uniqueSubjectCodes = new Set();
+        allStudents.forEach(s => {
+            if (s.subcodes) {
+                s.subcodes.toString().split(',').forEach(c => uniqueSubjectCodes.add(c.trim()));
             }
+        });
 
-            // সকল শিক্ষার্থীর ডাটা থেকে ইউনিক সাবজেক্ট কোডগুলো বের করা
-            const uniqueSubjectCodes = new Set();
+        const sortedCodes = Array.from(uniqueSubjectCodes).sort();
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Question Count');
+
+        worksheet.columns = [
+            { header: 'SL', key: 'sl', width: 10 },
+            { header: 'Sub Code', key: 'subCode', width: 15 },
+            { header: 'Subject Name', key: 'subName', width: 40 },
+            { header: 'Total Examinees', key: 'examinees', width: 18 },
+            { header: 'TF', key: 'tf', width: 12 },
+            { header: 'PF', key: 'pf', width: 12 }
+        ];
+
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E3A5F' } };
+        headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        let sl = 1;
+
+        sortedCodes.forEach(targetCode => {
+            let totalExaminees = 0;
+            let subjectName = "Not Found";
+            let tfMark = "-";
+            let pfMark = "-";
+
             allStudents.forEach(s => {
-                if (s.subcodes) {
-                    s.subcodes.toString().split(',').forEach(c => uniqueSubjectCodes.add(c.trim()));
-                }
-            });
+                const studentSubList = s.subcodes ? s.subcodes.toString().split(',').map(c => c.trim()) : [];
 
-            // বিষয় কোড গুলো Ascending Order-এ Sort করা
-            const sortedCodes = Array.from(uniqueSubjectCodes).sort();
+                if (studentSubList.includes(targetCode)) {
+                    totalExaminees++;
 
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Question Count');
+                    if (subjectName === "Not Found") {
+                        const techMatch = s.dept ? s.dept.toString().trim().match(/\d+/) : null;
+                        const techCode = techMatch ? techMatch[0] : null;
 
-            // Column Header Set (TF ও PF সহ)
-            worksheet.columns = [
-                { header: 'SL', key: 'sl', width: 10 },
-                { header: 'Sub Code', key: 'subCode', width: 15 },
-                { header: 'Subject Name', key: 'subName', width: 40 },
-                { header: 'Total Examinees', key: 'examinees', width: 18 },
-                { header: 'TF', key: 'tf', width: 12 },
-                { header: 'PF', key: 'pf', width: 12 }
-            ];
-
-            // Header Design (PDF-এর মতো গাঢ় নীল রঙ)
-            const headerRow = worksheet.getRow(1);
-            headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E3A5F' } }; // #1E3A5F
-            headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-
-            let sl = 1;
-
-            sortedCodes.forEach(targetCode => {
-                let totalExaminees = 0;
-                let subjectName = "Not Found";
-                let tfMark = "-";
-                let pfMark = "-";
-
-                allStudents.forEach(s => {
-                    const studentSubList = s.subcodes ? s.subcodes.toString().split(',').map(c => c.trim()) : [];
-
-                    if (studentSubList.includes(targetCode)) {
-                        totalExaminees++;
-
-                        if (subjectName === "Not Found") {
-                            // dept থেকে সংখ্যা এক্সট্রাক্ট করা (যেমন: techCode match)
-                            const techMatch = s.dept ? s.dept.toString().trim().match(/\d+/) : null;
-                            const techCode = techMatch ? techMatch[0] : null;
-
-                            // ডিপার্টমেন্ট এবং সাবজেক্ট কোড মিলিয়ে ডাটা খোঁজা
-                            const foundSub = allSubjectsData.find(sub => sub.code === targetCode && sub.deptCode == techCode);
-                            
-                            if (foundSub) {
-                                subjectName = foundSub.name;
-                                tfMark = (foundSub.tf !== undefined && foundSub.tf !== null) ? foundSub.tf : "-";
-                                pfMark = (foundSub.pf !== undefined && foundSub.pf !== null) ? foundSub.pf : "-";
-                            } else {
-                                // ফলব্যাক হিসেবে শুধু বিষয় কোড দিয়ে খোঁজা
-                                const fallbackSub = allSubjectsData.find(sub => sub.code === targetCode);
-                                if (fallbackSub) {
-                                    subjectName = fallbackSub.name;
-                                    tfMark = (fallbackSub.tf !== undefined && fallbackSub.tf !== null) ? fallbackSub.tf : "-";
-                                    pfMark = (fallbackSub.pf !== undefined && fallbackSub.pf !== null) ? fallbackSub.pf : "-";
-                                }
+                        const foundSub = subjectsList.find(sub => sub.code === targetCode && sub.deptCode == techCode);
+                        
+                        if (foundSub) {
+                            subjectName = foundSub.name;
+                            tfMark = (foundSub.tf !== undefined && foundSub.tf !== null) ? foundSub.tf : "-";
+                            pfMark = (foundSub.pf !== undefined && foundSub.pf !== null) ? foundSub.pf : "-";
+                        } else {
+                            const fallbackSub = subjectsList.find(sub => sub.code === targetCode);
+                            if (fallbackSub) {
+                                subjectName = fallbackSub.name;
+                                tfMark = (fallbackSub.tf !== undefined && fallbackSub.tf !== null) ? fallbackSub.tf : "-";
+                                pfMark = (fallbackSub.pf !== undefined && fallbackSub.pf !== null) ? fallbackSub.pf : "-";
                             }
                         }
                     }
-                });
-
-                if (totalExaminees > 0) {
-                    const row = worksheet.addRow({
-                        sl: sl++,
-                        subCode: targetCode,
-                        subName: subjectName,
-                        examinees: totalExaminees,
-                        tf: tfMark,
-                        pf: pfMark
-                    });
-
-                    // Alignment & Border Set
-                    row.eachCell((cell, colNumber) => {
-                        cell.alignment = { 
-                            horizontal: colNumber === 3 ? 'left' : 'center', 
-                            vertical: 'middle' 
-                        };
-                        cell.border = {
-                            top: { style: 'thin' },
-                            left: { style: 'thin' },
-                            bottom: { style: 'thin' },
-                            right: { style: 'thin' }
-                        };
-                    });
                 }
             });
 
-            // Excel File Generation
-            return workbook.xlsx.writeBuffer();
-        })
-        .then(buffer => {
-            const blob = new Blob([buffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Question_Count.xlsx`;
-            a.click();
+            if (totalExaminees > 0) {
+                const row = worksheet.addRow({
+                    sl: sl++,
+                    subCode: targetCode,
+                    subName: subjectName,
+                    examinees: totalExaminees,
+                    tf: tfMark,
+                    pf: pfMark
+                });
 
-            window.URL.revokeObjectURL(url);
-            Swal.close();
-            Swal.fire("সফল!", "এক্সেল ফাইলটি তৈরি হয়েছে।", "success");
-        })
-        .catch(error => {
-            console.error(error);
-            if (error.message !== "No student data") {
-                Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে।", "error");
+                row.eachCell((cell, colNumber) => {
+                    cell.alignment = { 
+                        horizontal: colNumber === 3 ? 'left' : 'center', 
+                        vertical: 'middle' 
+                    };
+                    cell.border = {
+                        top: { style: 'thin' }, left: { style: 'thin' },
+                        bottom: { style: 'thin' }, right: { style: 'thin' }
+                    };
+                });
             }
         });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Question_Count.xlsx`;
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        Swal.close();
+        Swal.fire("সফল!", "এক্সেল ফাইলটি তাৎক্ষণিকভাবে তৈরি হয়েছে।", "success");
+
+    } catch (error) {
+        console.error("Excel Generation Error:", error);
+        Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে।", "error");
+    }
 }
 
-
-function downloadQuestionCountPDF2() {
+async function downloadQuestionCountPDF() {
     Swal.fire({
-        title: 'প্রসেসিং হচ্ছে...',
-        html: 'সার্ভার থেকে সকল ডাটা সংগ্রহ করা হচ্ছে।',
+        title: 'PDF জেনারেট হচ্ছে...',
+        html: 'ডাটা প্রসেস করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন।',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    fetch(API_URL + "?action=specificSearch")
-        .then(response => response.json())
-        .then(res => {
-            const allStudents = res.students;
-            if (!allStudents || allStudents.length === 0) {
-                Swal.fire("Error", "No student data found.", "error");
-                throw new Error("No student data");
+    try {
+        // Local ডাটা আগে চেক করবে, না পেলে Fetch করবে
+        const allStudents = await getStudentDataSafely();
+
+        if (!allStudents || allStudents.length === 0) {
+            Swal.fire("Error", "কোনো স্টুডেন্ট ডাটা পাওয়া যায়নি।", "error");
+            return;
+        }
+
+        const subjectsList = Array.isArray(allSubjectsData) ? allSubjectsData : (allSubjectsData.subjects || []);
+
+        const uniqueSubjectCodes = new Set();
+        allStudents.forEach(s => {
+            if (s.subcodes) {
+                s.subcodes.toString().split(',').forEach(c => uniqueSubjectCodes.add(c.trim()));
             }
+        });
 
-            // সকল শিক্ষার্থীর ডাটা থেকে ইউনিক সাবজেক্ট কোডগুলো বের করা
-            const uniqueSubjectCodes = new Set();
+        const sortedCodes = Array.from(uniqueSubjectCodes).sort();
+        const summaryRows = [];
+        let sl = 1;
+
+        sortedCodes.forEach(targetCode => {
+            let totalExaminees = 0;
+            let subjectName = "Not Found";
+            let tfMark = "-";
+            let pfMark = "-";
+
             allStudents.forEach(s => {
-                if (s.subcodes) {
-                    s.subcodes.toString().split(',').forEach(c => uniqueSubjectCodes.add(c.trim()));
-                }
-            });
+                const studentSubList = s.subcodes ? s.subcodes.toString().split(',').map(c => c.trim()) : [];
 
-            // বিষয় কোডগুলো Ascending Order-এ Sort করা
-            const sortedCodes = Array.from(uniqueSubjectCodes).sort();
+                if (studentSubList.includes(targetCode)) {
+                    totalExaminees++;
+                    
+                    if (subjectName === "Not Found") {
+                        const techMatch = s.dept ? s.dept.toString().trim().match(/\d+/) : null;
+                        const techCode = techMatch ? techMatch[0] : null;
 
-            const summaryRows = [];
-            let sl = 1;
-
-            sortedCodes.forEach(targetCode => {
-                let totalExaminees = 0;
-                let subjectName = "Not Found";
-                let tfMark = "-";
-                let pfMark = "-";
-
-                allStudents.forEach(s => {
-                    const studentSubList = s.subcodes ? s.subcodes.toString().split(',').map(c => c.trim()) : [];
-
-                    if (studentSubList.includes(targetCode)) {
-                        totalExaminees++;
+                        const foundSub = subjectsList.find(sub => sub.code === targetCode && sub.deptCode == techCode);
                         
-                        if (subjectName === "Not Found") {
-                            // dept থেকে টেকনিক্যাল কোড বের করা
-                            const techMatch = s.dept ? s.dept.toString().trim().match(/\d+/) : null;
-                            const techCode = techMatch ? techMatch[0] : null;
-
-                            const foundSub = allSubjectsData.find(sub => sub.code === targetCode && sub.deptCode == techCode);
-                            
-                            if (foundSub) {
-                                subjectName = foundSub.name;
-                                tfMark = (foundSub.tf !== undefined && foundSub.tf !== null) ? foundSub.tf : "-";
-                                pfMark = (foundSub.pf !== undefined && foundSub.pf !== null) ? foundSub.pf : "-";
-                            } else {
-                                const fallbackSub = allSubjectsData.find(sub => sub.code === targetCode);
-                                if (fallbackSub) {
-                                    subjectName = fallbackSub.name;
-                                    tfMark = (fallbackSub.tf !== undefined && fallbackSub.tf !== null) ? fallbackSub.tf : "-";
-                                    pfMark = (fallbackSub.pf !== undefined && fallbackSub.pf !== null) ? fallbackSub.pf : "-";
-                                }
+                        if (foundSub) {
+                            subjectName = foundSub.name;
+                            tfMark = (foundSub.tf !== undefined && foundSub.tf !== null) ? foundSub.tf : "-";
+                            pfMark = (foundSub.pf !== undefined && foundSub.pf !== null) ? foundSub.pf : "-";
+                        } else {
+                            const fallbackSub = subjectsList.find(sub => sub.code === targetCode);
+                            if (fallbackSub) {
+                                subjectName = fallbackSub.name;
+                                tfMark = (fallbackSub.tf !== undefined && fallbackSub.tf !== null) ? fallbackSub.tf : "-";
+                                pfMark = (fallbackSub.pf !== undefined && fallbackSub.pf !== null) ? fallbackSub.pf : "-";
                             }
                         }
                     }
-                });
-
-                if (totalExaminees > 0) {
-                    summaryRows.push([sl++, targetCode, subjectName, totalExaminees, tfMark, pfMark]);
                 }
             });
 
-            // PDF জেনারেট করা
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(12);
-            doc.text("Question Count", doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
-            doc.text("Center: Pirganj Govt. TSC, Pirganj, Thakurgaon", doc.internal.pageSize.getWidth() / 2, 22, { align: "center" });
-
-            doc.autoTable({
-                startY: 25,
-                head: [['SL', 'Sub Code', 'Subject Name', 'Total Examinees', 'TF', 'PF']],
-                headStyles: { fillColor: [30, 58, 95] },
-                body: summaryRows,
-                styles: {
-                    fontSize: 8,
-                    cellPadding: 1.5,
-                    minCellHeight: 6
-                },
-                theme: 'grid',
-                columnStyles: { 
-                    0: { cellWidth: 12, halign: 'center' }, 
-                    1: { cellWidth: 28, halign: 'center' }, 
-                    2: { cellWidth: 80 }, 
-                    3: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
-                    4: { cellWidth: 20, halign: 'center' },
-                    5: { cellWidth: 20, halign: 'center' }
-                }
-            });
-
-            Swal.close();
-            doc.save(`Question_Count.pdf`);
-        })
-        .catch(error => {
-            console.error(error);
-            if (error.message !== "No student data") {
-                Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে।", "error");
+            if (totalExaminees > 0) {
+                summaryRows.push([sl++, targetCode, subjectName, totalExaminees, tfMark, pfMark]);
             }
         });
+
+        const { jsPDF } = window.jspdf || {};
+        if (!jsPDF) {
+            Swal.fire("Error", "jsPDF library লোড হয়নি!", "error");
+            return;
+        }
+
+        const doc = new jsPDF();
+        doc.setFontSize(12);
+        doc.text("Question Count", doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
+        doc.text("Center: Pirganj Govt. Technical School & College, Pirganj", doc.internal.pageSize.getWidth() / 2, 22, { align: "center" });
+
+        if (typeof doc.autoTable !== 'function') {
+            Swal.fire("Error", "jspdf-autotable plugin যুক্ত করা নেই!", "error");
+            return;
+        }
+
+        doc.autoTable({
+            startY: 25,
+            head: [['SL', 'Sub Code', 'Subject Name', 'Total Examinees', 'TF', 'PF']],
+            headStyles: { fillColor: [30, 58, 95] },
+            body: summaryRows,
+            styles: { fontSize: 8, cellPadding: 1.5, minCellHeight: 6 },
+            theme: 'grid',
+            columnStyles: { 
+                0: { cellWidth: 12, halign: 'center' }, 
+                1: { cellWidth: 28, halign: 'center' }, 
+                2: { cellWidth: 80 }, 
+                3: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
+                4: { cellWidth: 20, halign: 'center' },
+                5: { cellWidth: 20, halign: 'center' }
+            }
+        });
+
+        Swal.close();
+        doc.save(`Question_Count.pdf`);
+
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে।", "error");
+    }
+}
+
+async function getStudentDataSafely() {
+    // ১. প্রথমে Global Variable বা LocalStorage চেক
+    let students = Array.isArray(allStudentsData) ? allStudentsData : (allStudentsData.students || []);
+    
+    if (!students || students.length === 0) {
+        const cached = localStorage.getItem('allStudentsData');
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            students = Array.isArray(parsed) ? parsed : (parsed.students || []);
+        }
+    }
+
+    // ২. Local-এ ডাটা পাওয়া গেলে সরাসরি ফেরত পাঠাবে (সার্ভারে কল করবে না)
+    if (students && students.length > 0) {
+        console.log("Loaded student data from Local Cache!");
+        return students;
+    }
+
+    // ৩. Local-এ না থাকলে তবেই সার্ভার থেকে Fetch করবে
+    console.log("Fetching student data from Server...");
+    const response = await fetch(API_URL + "?action=specificSearch");
+    const res = await response.json();
+    return Array.isArray(res) ? res : (res.students || []);
 }
 
 
 function showPracticalExamineesTable() {
-    const practicalExaminees = getPracticalExaminees(currentStudents)
+    if (!currentStudents || currentStudents.length === 0) {
+        if (window.Swal) Swal.fire("তথ্য নেই", "খুঁজে পাওয়ার মতো কোনো শিক্ষার্থী নেই।", "warning");
+        return;
+    }
 
-    if (practicalExaminees.length > 0) {
-        renderTable(practicalExaminees);
-        document.getElementById("subDisplayCode").innerText = "Practical List";
-        Swal.fire("সফল!", `মোট ${practicalExaminees.length} জন ব্যবহারিক পরীক্ষার্থী পাওয়া গেছে।`, "success");
-    } else {Swal.fire("দুঃখিত", "কোনো ব্যবহারিক পরীক্ষার্থী পাওয়া যায়নি।", "info");}
+    const practicalExaminees = getPracticalExaminees(currentStudents);
+    const nonPracticalCount = currentStudents.length - practicalExaminees.length;
+    showPracticalExaminess = true;
+
+    renderTablePage();
+    if (window.Swal) {
+        Swal.fire(
+            "ব্যবহারিক চেক সম্পন্ন!", 
+            `মোট ${currentStudents.length} জনের মধ্যে ${practicalExaminees.length} জনের ব্যবহারিক আছে।<br>যাদের ব্যবহারিক নেই (${nonPracticalCount} জন) তাদের রো লাল রঙে হাইলাইট করা হয়েছে।`, 
+            "info"
+        );
+    }
 }
 
 function getPracticalExaminees(studentsList) {
-    const pracSemesters = new Set([1, 2, 4, 6]); 
+    const pracSemesters = new Set([2, 3, 5, 7]); 
     const practicalExaminees = studentsList.filter(stu => {
 
         const currentSemi = (stu.semi || "").toString().trim();
@@ -598,20 +652,72 @@ function getPracticalExaminees(studentsList) {
     return practicalExaminees.length? practicalExaminees : [];
 }
 
-
-function downloadAttendanceSheet() {
-    const driveLink = "https://docs.google.com/spreadsheets/d/1Nf2NTlg5BGwWfzRiNz1jmPn88vRzd-1Jgcz8z2euDMI/edit?usp=sharing";
-    Swal.fire({
-        title: '<strong>Attendance Sheet Template</strong>',
-        icon: 'info',
-        html: `গুগল ড্রাইভ থেকে ফাইলটি .xlsm ফরম্যাটে ডাউনলোড করে ম্যাক্রো এনাবল করুন।`,
+async function downloadAttendanceSheet() {
+    const { value: formValues } = await Swal.fire({
+        title: 'হাজিরা শিট রেঞ্জ নির্ধারণ করুন',
+        html:
+            '<div class="text-start mb-2"><label class="fw-bold">শুরুর SL (Start):</label>' +
+            '<input id="swal-input1" type="number" class="swal2-input" placeholder="যেমন: 1"></div>' +
+            '<div class="text-start"><label class="fw-bold">শেষের SL (End):</label>' +
+            '<input id="swal-input2" type="number" class="swal2-input" placeholder="যেমন: 50"></div>',
+        focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: 'Open Drive File',
-        confirmButtonColor: '#1e3a5f'
-    }).then((result) => {
-        if (result.isConfirmed) { window.open(driveLink, '_blank'); }
+        confirmButtonText: 'হাজিরা শিট দেখুন',
+        cancelButtonText: 'বাতিল',
+        confirmButtonColor: '#1e3a5f',
+        preConfirm: () => {
+            const startSL = parseInt(document.getElementById('swal-input1').value);
+            const endSL = parseInt(document.getElementById('swal-input2').value);
+            if (isNaN(startSL) || isNaN(endSL)) {  Swal.showValidationMessage('অনুগ্রহ করে সঠিক SL নম্বর ইনপুট দিন'); return false; }
+            if (startSL > endSL) { Swal.showValidationMessage('শুরুর SL অবশ্যই শেষের SL এর থেকে ছোট বা সমান হতে হবে');  return false; }
+            if ((endSL - startSL) > 50) { Swal.showValidationMessage('পার্থক্য ৫০ এর বেশি হতে পারবে না (সর্বোচ্চ ৫০টি SL নেওয়া যাবে)');  return false; }
+            return { startSL, endSL };
+        }
     });
+
+    if (!formValues) return;
+    const { startSL, endSL } = formValues;
+
+    Swal.fire({
+        title: 'Your request is being processed. Please wait a bit',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const response = await fetch(`${API_URL}?action=specialSearch`);
+        const res = await response.json();
+        const studentList = Array.isArray(res) ? res : (res.students || []);
+        if (res.subjects) {localStorage.setItem('allSubjectsData', JSON.stringify(res.subjects));}
+
+        if (!studentList || studentList.length === 0) {
+            Swal.fire("ত্রুটি", "সার্ভার থেকে কোনো ডাটা পাওয়া যায়নি।", "error");
+            return;
+        }
+
+        const filteredAttendanceData = studentList.filter(student => {
+            const slRaw = student.sl || '0';
+            const sl = parseInt(slRaw.toString().replace(/\D/g, ''));
+            return sl >= startSL && sl <= endSL;
+        });
+
+        if (filteredAttendanceData.length === 0) {
+            Swal.fire("ডাটা পাওয়া যায়নি", `SL ${startSL} থেকে ${endSL} এর মধ্যে কোনো ডাটা পাওয়া যায়নি।`, "warning");
+            return;
+        }
+
+        sessionStorage.setItem('attendanceStudents', JSON.stringify(filteredAttendanceData));
+        sessionStorage.setItem('attendanceRange', JSON.stringify({ startSL, endSL }));
+
+        Swal.close();
+        window.open('atn_sheet.html', '_blank');
+
+    } catch (error) {
+        console.error("Fetch Error:", error);
+        Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে!", "error");
+    }
 }
+
 function calculateCenterFee() {
     const selectedInst = document.getElementById("specInst").value;
     if (!selectedInst) { Swal.fire("Warning", "দয়া করে আগে একটি Institute সিলেক্ট করুন।", "warning"); return;}
