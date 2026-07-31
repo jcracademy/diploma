@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DEMS PGTSC</title>
+    <title>DEMS Pirganj</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
@@ -11,7 +11,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2pdf.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>  
+
 
     <style>
         body { background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -46,7 +49,7 @@
 <div class="container">
     <div class="sticky-header">
         <div class="header"> Diploma Exam Management System </div>
-        <div class="fs-6 text-secondary"> Center: Pirganj Govt. TSC, Thakurgaon </div>
+        <div class="fs-6 text-secondary"> Center: Pirganj Govt. TSC, Pirganj, Thakurgaon </div>
     </div>
 
     <div id="standardSearch" class="card mb-3 shadow-sm border-0">
@@ -126,10 +129,10 @@
                     <div class="row row-cols-2 g-1 mt-2 download-btns">
                         <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadRolls()">Rolls</button></div>
                         <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadSeatLabels()">Seat Label</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="showPracticalExamineesTable()">Practical List</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="showPracticalExamineesTable()">Show Practical List</button></div>
                         <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadQuestionCountPDF()">Question Count</button></div>
                         <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadAttendanceSheet()">Attendance Sheet</button></div>
-                        <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadRoutine()">Routine</button></div>
+                        <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadRoutine()">Download Routine</button></div>
 
                         <div class="col extra-btn d-none">
                             <button class="btn btn-sm btn-outline-primary w-100" onclick="calculateCenterFee()">Center Fee</button>
