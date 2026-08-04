@@ -102,18 +102,29 @@ function downloadSeatLabels() {
         Swal.fire("ডেটা নেই", "প্রথমে সার্চ করে স্টুডেন্ট লিস্ট লোড করুন।", "warning");
         return;
     }
-    Swal.fire({ title: 'Excel ফাইল তৈরি হচ্ছে...',  didOpen: () => { Swal.showLoading(); } });
+    Swal.fire({ title: 'Excel ফাইল তৈরি হচ্ছে...', didOpen: () => { Swal.showLoading(); } });
 
     try {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Seat Labels');
 
+        // --- প্রিন্ট পেজ সেটআপ (A4 & Landscape) ---
+        worksheet.pageSetup = {
+            paperSize: 9,             // A4 Size
+            orientation: 'landscape',    // Landscape orientation
+            fitToPage: true,
+            fitToWidth: 1,            // ১ পেজের মধ্যে কলাম ফিট করবে
+            fitToHeight: 0
+        };
+
         const centerName = "Pirganj Govt. Technical School & College";
         const examTitle = "Diploma in Engineering Examination 2025";
 
         // কলামের প্রশস্ততা সেট করা
-        worksheet.columns = [ { width: 18 }, { width: 20 }, { width: 3 },  { width: 18 }, 
-            { width: 20 }, { width: 3 },  { width: 18 }, { width: 20 }
+        worksheet.columns = [
+            { width: 18 }, { width: 20 }, { width: 3 }, 
+            { width: 18 }, { width: 20 }, { width: 3 }, 
+            { width: 18 }, { width: 20 }
         ];
 
         let currentRow = 1;
@@ -142,7 +153,6 @@ function downloadSeatLabels() {
 
                 // গ. ডিপার্টমেন্ট (Left Box)
                 const cellDept = worksheet.getCell(currentRow + 2, startCol);
-                // আপনার মূল কোডের লজিক অনুযায়ী (ডিপার্টমেন্ট নাম ডাইনামিক করা ভালো, তবে আমি আপনার কোডটিই রাখলাম)
                 cellDept.value = student.dept || "N/A"; 
                 cellDept.font = { size: 10 };
                 cellDept.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -200,12 +210,12 @@ function downloadSeatLabels() {
             .catch(function (error) {
                 console.error(error);
                 Swal.close();
-                Swal.fire("Error", "ফাইলটি তৈরি করতে ইন্টারনাল সমস্যা হয়েছে।", "error");
+                Swal.fire("Error", "ফাইলটি তৈরি করতে ইন্টারনাল সমস্যা হয়েছে।", "error");
             });
 
     } catch (error) {
         console.error(error);
-        Swal.fire("Error", "কোড এক্সিকিউশনে সমস্যা হয়েছে!", "error");
+        Swal.fire("Error", "কোড এক্সিকিউশনে সমস্যা হয়েছে!", "error");
     }
 }
 
