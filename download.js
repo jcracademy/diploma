@@ -108,13 +108,23 @@ function downloadSeatLabels() {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Seat Labels');
 
-        // --- প্রিন্ট পেজ সেটআপ (A4 & Landscape) ---
+        // --- প্রিন্ট পেজ সেটআপ (A4, Landscape & Margins) ---
         worksheet.pageSetup = {
             paperSize: 9,             // A4 Size
             orientation: 'landscape',    // Landscape orientation
             fitToPage: true,
-            fitToWidth: 1,            // ১ পেজের মধ্যে কলাম ফিট করবে
-            fitToHeight: 0
+            fitToWidth: 1,            // ১ পেজের প্রস্থে ফিট করবে
+            fitToHeight: 0,
+            
+            // Margin setup in inches
+            margins: {
+                left: 0.4,
+                right: 0.4,
+                top: 0.4,
+                bottom: 0.4,
+                header: 0.2,
+                footer: 0.2
+            }
         };
 
         const centerName = "Pirganj Govt. Technical School & College";
@@ -122,15 +132,22 @@ function downloadSeatLabels() {
 
         // কলামের প্রশস্ততা সেট করা
         worksheet.columns = [
-            { width: 18 }, { width: 20 }, { width: 3 }, 
-            { width: 18 }, { width: 20 }, { width: 3 }, 
-            { width: 18 }, { width: 20 }
+            { width: 21 }, { width: 22 }, { width: 3 }, 
+            { width: 21 }, { width: 22 }, { width: 3 }, 
+            { width: 21 }, { width: 22 }
         ];
 
         let currentRow = 1;
 
         for (let i = 0; i < currentStudents.length; i += 3) {
             const students = [currentStudents[i], currentStudents[i + 1], currentStudents[i + 2]];
+
+            // --- রো-এর উচ্চতা (Row Height) সেট করা ---
+            worksheet.getRow(currentRow).height = 16;     // সেন্টার নেম
+            worksheet.getRow(currentRow + 1).height = 16; // এক্সাম টাইটেল
+            worksheet.getRow(currentRow + 2).height = 16; // ডিপার্টমেন্ট
+            worksheet.getRow(currentRow + 3).height = 16; // স্ট্যাটাস ও রোল
+            worksheet.getRow(currentRow + 4).height = 16; // দুটি রো এর মাঝখানের গ্যাপ (Gap Row)
 
             students.forEach((student, index) => {
                 if (!student) return;
@@ -141,14 +158,14 @@ function downloadSeatLabels() {
                 worksheet.mergeCells(currentRow, startCol, currentRow, startCol + 1);
                 const cellTitle = worksheet.getCell(currentRow, startCol);
                 cellTitle.value = centerName;
-                cellTitle.font = { size: 9, bold: true };
+                cellTitle.font = { size: 11, bold: true };
                 cellTitle.alignment = { vertical: 'middle', horizontal: 'center' };
 
                 // খ. এক্সাম টাইটেল (Merge & Center)
                 worksheet.mergeCells(currentRow + 1, startCol, currentRow + 1, startCol + 1);
                 const cellExam = worksheet.getCell(currentRow + 1, startCol);
                 cellExam.value = examTitle;
-                cellExam.font = { size: 11, bold: true };
+                cellExam.font = { size: 12, bold: true };
                 cellExam.alignment = { vertical: 'middle', horizontal: 'center' };
 
                 // গ. ডিপার্টমেন্ট (Left Box)
@@ -167,7 +184,7 @@ function downloadSeatLabels() {
                 worksheet.mergeCells(currentRow + 2, startCol + 1, currentRow + 3, startCol + 1);
                 const cellRoll = worksheet.getCell(currentRow + 2, startCol + 1);
                 cellRoll.value = student.roll;
-                cellRoll.font = { size: 24, bold: true };
+                cellRoll.font = { size: 25, bold: true };
                 cellRoll.alignment = { vertical: 'middle', horizontal: 'center' };
 
                 // চ. বর্ডার সেট করা
@@ -186,7 +203,7 @@ function downloadSeatLabels() {
             currentRow += 5; 
         }
 
-        // --- Buffer প্রসেস (fetch...then format) ---
+        // --- Buffer প্রসেস ---
         workbook.xlsx.writeBuffer()
             .then(function (buffer) {
                 const blob = new Blob([buffer], { 
