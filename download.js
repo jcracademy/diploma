@@ -130,7 +130,7 @@ function downloadSeatLabels() {
                 worksheet.mergeCells(currentRow, startCol, currentRow, startCol + 1);
                 const cellTitle = worksheet.getCell(currentRow, startCol);
                 cellTitle.value = centerName;
-                cellTitle.font = { size: 10, bold: true };
+                cellTitle.font = { size: 9, bold: true };
                 cellTitle.alignment = { vertical: 'middle', horizontal: 'center' };
 
                 // খ. এক্সাম টাইটেল (Merge & Center)
