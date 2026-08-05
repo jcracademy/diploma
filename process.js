@@ -14,9 +14,8 @@
     document.body.classList.add('loading');
 
     function initDropdowns() {
-        fill("selectInst", ["City Polytechnic Institute", "Confidence Polytechnic Institute",   "Dhamrai Polytechnic Institute",   "New Ideal Polytechnic Institute", 
-            "N. Islam Institute of Science & Technology",   "National Polytechnic Institute Manikganj",   "Raylla Abdul Jabbar Polytechnic Institute"]);
-        fill("selectTech", ["(61) Architecture", "(62) Automobile", "(64) Civil", "(66) Computer", "(67) Electrical", "(69) Food", "(70) Mechanical", "(78) Surveying", "(85) Computer"]);
+        fill("selectInst", ["Pirgonj Polytechnic Institute", "Ranisonkoil Polytechnic Institute",   "Ranisankail Ideal Non-Govt. Polytechnic Institute" ]);
+        fill("selectTech", ["(64) Civil", "(66) Computer", "(67) Electrical", "(70) Mechanical", "(85) Computer"]);
         fill("selectSemi", ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]);
         fill("selectSyllabus", ["2022", "2016"]);
     }
