@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atn Sheet</title>
-    
-    <!-- Google Fonts & html2pdf.js CDN -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
+    <script src="subjects.js" defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Noto Serif Bengali', serif, Arial, sans-serif; background-color: #eef1f5; color: #000; padding: 20px; }
@@ -24,7 +22,7 @@
         .page-break { page-break-after: always; break-after: page; }
         .sheet-container { position: relative; width: 100%; max-width: 210mm; min-height: 297mm; background: #fff; margin: 0 auto 20px auto; padding: 10mm 12mm 6mm 12mm; box-shadow: 0 0 10px rgba(0,0,0,0.15); }
         .top-meta { position: absolute; top: 5mm; right: 10mm; z-index: 10; display: flex; line-height: 1.3; }
-        .top-meta2 { position: absolute; top: 29mm; left: 14mm; z-index: 15; color: #00000086; }
+        .top-meta2 { position: absolute; top: 29mm; left: 14mm; z-index: 15; color: #00000066; }
         .header { position: relative; text-align: center; margin-top: 2px; margin-bottom: 5px; min-height: 60px; }
         .header .logo { position: absolute; left: 0; top: 0; width: 65px; height: auto; }
         .header h2 { font-size: 18px; font-weight: 700; }
@@ -36,8 +34,9 @@
         table.attendance-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 5px; table-layout: fixed; }
         table.attendance-table th, table.attendance-table td {
            border: 1px solid #000; height: 31px; padding: 0 5px; line-height: 28px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; vertical-align: middle;}
+        
         table.attendance-table td.text-left { text-align: left; padding-left: 6px; font-size: 11px; }
-        .section-divider { font-weight: bold; text-align: left !important; padding-left: 10px !important;}
+        .section-divider { font-weight: bold; text-align: left !important; padding-left: 10px !important; }
 
         .footer { margin-top: 5px; font-size: 14px; }
         .footer .note { width: 100%; line-height: 2; margin-bottom: 40px; }
@@ -53,49 +52,37 @@
             .page-break { page-break-after: always; }
         }
     </style>
+
 </head>
 <body>
     <div class="no-print">
-        <button class="btn-action" onclick="window.print()">🖨️ সরাসরি প্রিন্ট করুন</button>
-        <button class="btn-action btn-pdf" onclick="downloadAllPDF()">📥 সব হাজিরা শিট একত্রে PDF নামান</button>
+        <button class="btn-action" onclick="window.print()">🖨️ প্রিন্ট করুন</button>
     </div>
     <div id="attendance-sheets-wrapper"></div>
-
     <script>
     let rangeInfo = { startSL: 1, endSL: 1 };
 
     function generateSheetHTML(student, isLast) {
-        const allSubjectsData = JSON.parse(localStorage.getItem('allSubjectsData') || '[]');
         const rawCodes = student.subcodes ? student.subcodes.toString().split(',').map(c => c.trim()) : [];
-        const techMatch = student.dept ? student.dept.toString().trim().match(/\d+/) : null;
-        const techCode = techMatch ? techMatch[0] : "";
         const theoryList = [];
         const practicalList = [];
 
-        console.log(allSubjectsData);
         rawCodes.forEach(code => {
             if (!code) return;
-
-             
-            let subInfo = allSubjectsData.find(s => 
-                s.code && s.code.toString().trim() === code && (techCode && s.deptCode ? s.deptCode.toString().trim() === techCode : true)
-            );
-
-            if (!subInfo) { subInfo = allSubjectsData.find(s => s.code && s.code.toString().trim() === code);}
+            let subInfo = findSubjectByCode(code, student.dept);
 
             if (subInfo) {
-                console.log(subInfo.tf);
                 const tf = parseInt(subInfo.tf) || 0;
                 const pf = parseInt(subInfo.pf) || 0;
-                if (tf > 0) {  theoryList.push({ code: subInfo.code, name: subInfo.name }); }
-                if (pf > 0 && student.type === "Regular" && subInfo.semi === student.semi) { practicalList.push({ code: subInfo.code, name: subInfo.name }); }
+                
+                if (tf > 0) { theoryList.push({ code: subInfo.code, name: subInfo.name }); }
 
-            } else {
-                theoryList.push({ code: code, name: '' });
-            }
+                if (pf > 0 && student.type === "Regular" && subInfo.semi === student.semi && !subInfo.name.includes("Math")) { 
+                    practicalList.push({ code: subInfo.code, name: subInfo.name }); 
+                }
+            } else { theoryList.push({ code: code, name: ''});}
         });
 
-        // ------------------ তাত্ত্বিক সারি তৈরি ------------------
         let theoryRows = '';
         const maxTheoryRows = 13;
 
@@ -114,21 +101,16 @@
             `;
         }
 
-        // ------------------ ব্যবহারিক সারি তৈরি ------------------
         let practicalRows = '';
         const maxPracticalRows = 8;
 
         for (let i = 0; i < maxPracticalRows; i++) {
             const sub = practicalList[i] || { code: '', name: '' };
             practicalRows += `
-                <tr>
-                    <td></td>
-                    <td></td>
+                <tr><td></td> <td></td>
                     <td style="text-align: center;">${sub.code || ''}</td>
                     <td class="text-left" title="${sub.name || ''}">${sub.name || ''}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td></td> <td></td> <td></td>
                 </tr>
             `;
         }
@@ -139,7 +121,7 @@
         <div class="sheet-container ${pageBreakClass}">
             <div class="top-meta">
                 <div style="position:absolute; left:-60px; top: 0px; font-size: 14px;">SL- ${student.sl || ''}</div>
-                <div style="width: 190px; color: #00000086;">
+                <div style="width: 190px; color: #00000066;;">
                     <div style="text-align: center; font-size: 12px;">${student.name || ''}</div>
                     <div style="font-size: 10px; text-align: center;">${student.subcodeDetails || ''}</div>
                 </div>
@@ -155,7 +137,7 @@
             <div class="header">
                 <img src="logo.png" alt="বোর্ড লোগো" class="logo">
                 <div style="font-size: 20px;">বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা</div>
-                <div style="font-size: 15px;"> Diploma in Engineering Examination - ${student.semi || ''} Semester, পরীক্ষা ২০২৫ সন</div>
+                <div> Diploma in Engineering Examination ${student.semi || ''} Semester, পরীক্ষা ২০২৫ সন</div>
             </div>
 
             <div class="sheet-title" style="width: 100%; text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 6px;">হাজিরা শিট</div>
@@ -168,8 +150,8 @@
 
             <div class="institution-details">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>কেন্দ্রের নাম <span style="font-size: 14px; border-bottom: 1px dashed black;"> &nbsp;&nbsp; Pirganj Govt. Technical School and College, Pirganj, Thakurgaon</span></div>
-                    <div>কেন্দ্র কোড <span class="code-box2">12144</span></div>
+                    <div>কেন্দ্রের নাম <span style="font-size: 14px; border-bottom: 1px dashed black;"> &nbsp;&nbsp; Manikganj Government Technical School And College, Manikganj</span></div>
+                    <div>কেন্দ্র কোড <span class="code-box2">48012</span></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>প্রতিষ্ঠানের নাম <span style="font-size: 14px; border-bottom: 1px dashed black;"> &nbsp;&nbsp; ${student.inst || ''}</span></div>
@@ -212,14 +194,12 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // localStorage থেকে ডাটা নেওয়া
-        const storedData = sessionStorage.getItem('attendanceStudents');
+        const storedData = sessionStorage.getItem('atnSheetStudents');
         const storedRange = sessionStorage.getItem('attendanceRange');
-    
 
         if (!storedData) {
             document.getElementById('attendance-sheets-wrapper').innerHTML = 
-                '<h2 style="text-align:center; color:red; margin-top:50px;">কোনো ডাটা পাওয়া যায়নি! অনুগ্রহ করে মূল পেজ থেকে হাজিরা শিট রিকোয়েস্ট করুন।</h2>';
+                '<h2 style="text-align:center; color:red; margin-top:50px;">কোনো ডাটা পাওয়া যায়নি! মূল পেজ থেকে পুনরায় হাজিরা শিট রিকোয়েস্ট করুন।</h2>';
             return;
         }
 
@@ -229,36 +209,28 @@
         const wrapper = document.getElementById('attendance-sheets-wrapper');
         let fullHTML = '';
 
-        students.forEach((student, index) => {
-            const isLast = index === students.length - 1;
-            fullHTML += generateSheetHTML(student, isLast);
-        });
-
+        students.forEach((student, index) => {const isLast = index === students.length - 1; fullHTML += generateSheetHTML(student, isLast);});
         wrapper.innerHTML = fullHTML;
-
     });
-
 
     function downloadAllPDF() {
         const element = document.getElementById('attendance-sheets-wrapper');
         const btnContainer = document.querySelector('.no-print');
         
-        // ডাউনলোডের সময় বাটন হাইড করা
         btnContainer.style.display = 'none';
 
         const opt = {
             margin:       0,
-            filename:     `Students_Attendance_Sheets_SL_${rangeInfo.startSL}_to_${rangeInfo.endSL}.pdf`,
+            filename:     `Attendance_Sheets_SL_${rangeInfo.startSL}_to_${rangeInfo.endSL}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         html2pdf().set(opt).from(element).save().then(() => {
-            btnContainer.style.display = 'flex'; // ডাউনলোড শেষে বাটন পুনরায় দেখানো
+            btnContainer.style.display = 'flex';
         });
     }
-  
     </script>
 </body>
 </html>
