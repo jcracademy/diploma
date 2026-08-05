@@ -3,18 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DEMS Pirganj</title>
-    
+    <title>DEMS Manikganj</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- html2pdf.js CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>  
-
 
     <style>
         body { background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -49,7 +45,7 @@
 <div class="container">
     <div class="sticky-header">
         <div class="header"> Diploma Exam Management System </div>
-        <div class="fs-6 text-secondary"> Center: Pirganj Govt. TSC, Pirganj, Thakurgaon </div>
+        <div class="fs-6 text-secondary"> Center: Manikganj Govt. TSC, Manikganj </div>
     </div>
 
     <div id="standardSearch" class="card mb-3 shadow-sm border-0">
@@ -65,19 +61,17 @@
                     <button class="btn btn-dark text-white me-2" onclick="toggleSearch(true)"> Specific Search </button>
 
                     <div class="dropdown d-inline-block me-2">
-                        <button class="btn btn-warning dropdown-toggle" type="button" id="dateDropdown" data-bs-toggle="dropdown"> Examinee on Date </button>
+                        <button class="btn btn-warning dropdown-toggle" type="button" id="dateDropdown" data-bs-toggle="dropdown"> Examinees on Date </button>
                         <ul class="dropdown-menu shadow p-3">
-                            <!-- 🌟 মাস পরিবর্তনের লেফট-রাইট অ্যারো কন্ট্রোল বার -->
                             <div class="calendar-navigation">
                                 <button type="button" onclick="navigateMonth(-1, event)">&larr;</button>
                                 <span id="currentMonthYear">Loading...</span>
                                 <button type="button" onclick="navigateMonth(1, event)">&rarr;</button>
                             </div>
                             <div class="d-flex flex-wrap" id="dateContainer"></div>
-                            <li class="mt-2 small text-muted text-center">Yellow = Exam Day</li>
+                            <li class="mt-2 small text-muted text-center">Highlight Cells = Exam Day</li>
                         </ul>
                     </div>
-                
                     <button class="btn btn-success" onclick="goToShironamPage()"> শিরোনাম পত্র </button>
                 </div>
             </div>
@@ -121,9 +115,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
                         <h6 class="card-title text-danger mb-0">Downloads</h6>
-                        <button class="btn btn-sm text-primary fw-bold" onclick="toggleMoreButtons(this)" id="moreBtn" style="font-size: 12px; cursor: pointer;">
-                            More Buttons (+)
-                        </button>
+                        <button class="btn btn-sm text-primary fw-bold" onclick="toggleMoreButtons(this)" id="moreBtn" style="font-size: 12px; cursor: pointer;"> More Buttons (+)</button>
                     </div>
                     
                     <div class="row row-cols-2 g-1 mt-2 download-btns">
@@ -134,18 +126,13 @@
                         <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadAttendanceSheet()">Attendance Sheet</button></div>
                         <div class="col"><button class="btn btn-sm btn-outline-dark w-100" onclick="downloadRoutine()">Download Routine</button></div>
 
-                        <div class="col extra-btn d-none">
-                            <button class="btn btn-sm btn-outline-primary w-100" onclick="calculateCenterFee()">Center Fee</button>
-                        </div>
-                        <div class="col extra-btn d-none">
-                            <button class="btn btn-sm btn-outline-primary w-100" onclick="downloadSeatPlan()">Seat Plan</button>
-                        </div>
+                        <div class="col extra-btn d-none"> <button class="btn btn-sm btn-outline-primary w-100" onclick="calculateCenterFee()">Center Fee</button></div>
+                        <div class="col extra-btn d-none"> <button class="btn btn-sm btn-outline-primary w-100" onclick="downloadSeatPlan()">Seat Plan</button> </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
@@ -173,6 +160,7 @@
     </div>
 </div>
 <script src="exceljs.min.js"></script>
+<script src="subjects.js"></script> 
 <script src="process.js"></script> 
 <script src="download.js"></script> 
 </body>
