@@ -4,68 +4,46 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>User Login</title>
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-  body {
-    margin: 0; padding: 0; min-height: 100vh;
-    background: linear-gradient(135deg, #004d26, #00713d, #8b0000, #004d26); background-size: 200% 200%; background-attachment: fixed;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; animation: movingGradient 60s ease infinite;
+  body { margin: 0; padding: 0; min-height: 100vh; background: linear-gradient(135deg, #004d26, #00713d, #8b0000, #004d26); background-size: 200% 200%; 
+    background-attachment: fixed; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; animation: movingGradient 60s ease infinite;
   }
-
-  @keyframes movingGradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
+  @keyframes movingGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; }}
 .container {position: relative; z-index: 2;}
-
-.card { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 16px;
-}
+.card { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 16px;}
 </style>
 </head>
 <body>
 
 <div class="container vh-100 d-flex justify-content-center align-items-center">
   <div class="text-center">
-
     <div class="mb-4 px-2 text-white">
       <h4 class="fw-bold mb-1">Diploma in Engineering Examination - 2026</h4>
-      <small class="text-white-50">Center: Pirganj Govt. TSC, Pirganj, Thakurgaon</small>
+      <small class="text-white-50">Center: Manikganj Govt. TSC, Manikganj</small>
     </div>
-
     <div class="card shadow-lg p-4 mx-auto text-start" style="width:350px;">
       <h4 class="text-center mb-4 fw-bold text-dark">Center Login</h4>
-
-      <div class="mb-3">
-        <label class="form-label text-secondary fw-semibold">User ID</label>
-        <input type="text" id="userId" class="form-control" placeholder="Enter Teacher ID">
+      <div class="mb-3"> <label class="form-label text-secondary fw-semibold">User ID</label> <input type="text" id="userId" class="form-control" placeholder="Enter Teacher ID">
       </div>
-
-      <div class="mb-4">
-        <label class="form-label text-secondary fw-semibold">Password</label>
-        <input type="password" id="password" class="form-control" placeholder="Enter Password">
+      <div class="mb-4"><label class="form-label text-secondary fw-semibold">Password</label><input type="password" id="password" class="form-control" placeholder="Enter Password">
       </div>
-
       <button id="loginBtn" class="btn btn-primary w-100 py-2 fw-semibold" onclick="loginUser()">Login</button>
-
       <div id="msg" class="text-danger text-center mt-3 fw-medium"></div>
     </div>
-
   </div>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxnmUcuFVLLK7pg9NsP8YVtC9LFjvhVMOV7vt08MWX09MIKl9LuNgZX4LXmR7jvHoZZ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzU_6xo1XsbuYdy6cwgUQCDwmdr49Og7h02-e2JdadzkKMIptyq_IxijDP0KVX3bM5_Qg/exec";
 
 function loginUser() {
   const uid = document.getElementById("userId").value.trim();
   const pwd = document.getElementById("password").value.trim();
   const msg = document.getElementById("msg");
   const btn = document.getElementById("loginBtn");
+  let allStudents = "";
 
   if (!uid || !pwd) { msg.innerText = "Please enter ID and Password"; return;}
 
@@ -73,32 +51,22 @@ function loginUser() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Please wait`;
 
-  fetch(API_URL + "?action=login&uid=" + uid + "&pwd=" + pwd)
-  .then(r => r.json())
+  fetch(API_URL + "?action=login&uid=" + uid + "&pwd=" + pwd).then(r => r.json())
   .then(res => {
     if(res.status === "ok") {
       sessionStorage.setItem("userId", uid);
-      localStorage.setItem('allSubjectsData', JSON.stringify(res.subjects));
-      localStorage.setItem('allStudentsData', JSON.stringify(res.students))
-      localStorage.setItem('routineData', JSON.stringify(res.routine));
+      allStudents = Array.isArray(res.students) ? res.students : (res.students.students || []);
+      localStorage.setItem('allStudents', JSON.stringify(allStudents))
+      localStorage.setItem('routine', JSON.stringify(res.routine));
       localStorage.setItem('lastFetchTime', Date.now());
       location.href = "diploma.html";
-    } else {
-      msg.innerText = "Invalid login!";
-      btn.disabled = false;
-      btn.innerHTML = "Login";
-    }
+    } else { msg.innerText = "Invalid login!"; btn.disabled = false; btn.innerHTML = "Login"; }
   })
-  .catch(err => {
-    console.error(err);
-    msg.innerText = "Server error!";
-    btn.disabled = false;
-    btn.innerHTML = "Login";
-  });
+  .catch(err => { console.error(err); msg.innerText = "Server error!"; btn.disabled = false; btn.innerHTML = "Login";});
 }
 
 function clearCache(){
-  [ "allSubjectsData", "allStudentsData", "routineData",  "lastFetchTime" ].forEach(key => localStorage.removeItem(key));
+  [ "allStudents", "routine",  "lastFetchTime" ].forEach(key => localStorage.removeItem(key));
   sessionStorage.removeItem("userId");
 }
 clearCache();
