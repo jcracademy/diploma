@@ -465,7 +465,7 @@ async function downloadQuestionCountPDF() {
         const doc = new jsPDF();
         doc.setFontSize(12);
         doc.text("Question Count", doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
-        doc.text("Center: Manikganj Govt. Technical School & College, Manikganj", doc.internal.pageSize.getWidth() / 2, 22, { align: "center" });
+        doc.text("Center: Pirganj Govt. Technical School & College, Thakurgaon", doc.internal.pageSize.getWidth() / 2, 22, { align: "center" });
 
         if (typeof doc.autoTable !== 'function') { Swal.fire("Error", "jspdf-autotable plugin যুক্ত করা নেই!", "error");  return;}
 
