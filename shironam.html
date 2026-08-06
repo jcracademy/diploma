@@ -1,46 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Shironam Potro - Diploma Exam System</title>
     
+    <!-- CSS Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap" rel="stylesheet">
+
+    <!-- JS Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        body { background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; padding-bottom: 50px; }
+        body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 50px; }
         .sticky-header {
-            position: sticky; top: 0; background: #f4f6f9; z-index: 1000;
-            padding-top: 15px; padding-bottom: 5px; border-bottom: 2px solid #ddd; margin-bottom: 10px;
+            position: sticky; top: 0; background: #f4f6f9; z-index: 1000; padding-top: 15px; padding-bottom: 5px; border-bottom: 2px solid #ddd; margin-bottom: 10px;
         }
         .header { font-size: 26px; font-weight: bold; color: #2c3e50; }
-        .subject-box {padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; background: white; min-height: 310px;}
+        .subject-box { padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; background: white; min-height: 310px; }
         .table-wrapper { height: 220px; overflow-y: auto; margin-top: 10px; border-radius: 4px; border: 1px solid #eee; }
         .subject-box h5 { font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .info-label { font-weight: bold; color: #555; font-size: 0.85rem; }
         .info-value { font-weight: bold; color: #000; font-size: 1rem; }
-        .badge-count { float: right; background: #f8f9fa; padding: 2px 8px; border-radius: 10px; font-size: 0.9rem; border: 1px solid #ddd;}
-        
-        /* Pagination Styling */
+        .badge-count { float: right; background: #f8f9fa; padding: 2px 8px; border-radius: 10px; font-size: 0.9rem; border: 1px solid #ddd; }
         .pagination-wrapper { background: #fff; padding: 12px; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
         .page-link { cursor: pointer; }
-        
-        /* Search Box */
         .search-box { max-width: 300px; border-color: #0d6efd; }
+
+        /* PDF Export Template Styling */
+        .pdf-template {
+            font-family: Arial, Helvetica, 'Segoe UI', 'Nikosh', sans-serif;
+            color: #000;
+            background: #fff;
+            padding: 20px 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .pdf-header { text-align: center; margin-bottom: 15px; }
+        .pdf-header h2 { font-size: 20px; font-weight: bold; margin: 0; }
+        .pdf-header p { font-size: 13px; margin: 2px 0; }
+        .pdf-header h3 { font-size: 22px; font-weight: bold; margin: 5px 0; }
+        
+        .pdf-info-table { width: 100%; margin-bottom: 15px; border-collapse: collapse; }
+        .pdf-info-table td { padding: 3px 0; vertical-align: top; }
+        
+        .pdf-box-section { margin-bottom: 12px; }
+        .pdf-box-title { font-weight: bold; font-size: 13px; margin-bottom: 3px; }
+        .pdf-box-content {
+            border: 1px solid #000;
+            min-height: 65px;
+            padding: 6px 10px;
+            font-size: 10px;
+            word-wrap: break-word;
+        }
+        .pdf-box-content.tall { min-height: 100px; }
+        .pdf-box-total { text-align: right; font-size: 13px; margin-top: 3px; }
+        .pdf-dots { border-bottom: 1px dotted #000; display: inline-block; min-width: 60px; text-align: center; font-weight: bold; }
+
+        @media print {
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="pdfContent">
     <div class="sticky-header">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <div class="header"> শিরোনাম পত্র </div>
-                <div class="fs-6 text-secondary"> Pirganj Govt. Technical School And College (12144) </div>
+                <div class="header">শিরোনাম পত্র</div>
+                <div class="fs-6 text-secondary">Pirganj Govt. Technical School And College (12144)</div>
             </div>
-            <div>
+            <div class="no-print">
                 <button class="btn btn-success me-2 shadow-sm" onclick="downloadShironam()"> Download Excel </button>
+                <button class="btn btn-primary me-2 shadow-sm" onclick="downloadPDF()"> Download PDF </button>
                 <button class="btn btn-outline-danger" onclick="window.history.back()"> Back </button>
             </div>
         </div>
@@ -52,14 +90,19 @@
                 <div class="col-md-5 border-end text-start">
                     <div class="info-label mb-1">পরীক্ষার নাম নির্বাচন করুন</div>
                     <select id="examNameSelect" class="form-select form-select-sm fw-bold text-primary border-primary">
-                        <option value="Diploma in Engineering 1st Sem Final Exam-2026">Diploma in Engineering 1st Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 2nd Sem Final Exam-2026">Diploma in Engineering 2nd Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 3rd Sem Final Exam-2026">Diploma in Engineering 3rd Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 4th Sem Final Exam-2026">Diploma in Engineering 4th Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 5th Sem Final Exam-2026">Diploma in Engineering 5th Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 6th Sem Final Exam-2026">Diploma in Engineering 6th Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 7th Sem Final Exam-2026">Diploma in Engineering 7th Sem Final Exam-2026</option>
-                        <option value="Diploma in Engineering 8th Sem Final Exam-2026">Diploma in Engineering 8th Sem Final Exam-2026</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ১ম পর্ব সমাপনী পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ১ম পর্ব সমাপনী পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ১ম পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ১ম পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ২য় পর্ব সমাপনী পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ২য় পর্ব সমাপনী পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ২য় পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ২য় পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৩য় পর্ব সমাপনী পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৩য় পর্ব সমাপনী পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৩য় পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৩য় পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৪র্থ পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৪র্থ পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৫ম পর্ব সমাপনী পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৫ম পর্ব সমাপনী পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৫ম পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৫ম পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৬ষ্ট পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৬ষ্ট পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৭ম পর্ব সমাপনী পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৭ম পর্ব সমাপনী পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৭ম পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৭ম পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
+                        <option value="ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৮ম পর্ব পরিপূরক পরীক্ষা-২০২৫">ডিপ্লোমা ইন ইঞ্জিনিয়ারীং ৮ম পর্ব পরিপূরক পরীক্ষা-২০২৫</option>
                     </select>
                 </div>
                 <div class="col-md-3 border-end">
@@ -84,7 +127,7 @@
                 <h5>অনুপস্থিত (Absent) <span id="absentCount" class="badge-count text-danger">0</span></h5>
                 <div class="table-wrapper">
                     <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th>Action</th></tr></thead>
+                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th class="no-print">Action</th></tr></thead>
                         <tbody id="absentBody"></tbody>
                     </table>
                 </div>
@@ -95,7 +138,7 @@
                 <h5>ভুল বৃত্ত (Vul Britto) <span id="vulCount" class="badge-count text-primary">0</span></h5>
                 <div class="table-wrapper">
                     <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th>Action</th></tr></thead>
+                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th class="no-print">Action</th></tr></thead>
                         <tbody id="vulBody"></tbody>
                     </table>
                 </div>
@@ -106,7 +149,7 @@
                 <h5>বহিষ্কৃত (Expel) <span id="expelCount" class="badge-count text-danger">0</span></h5>
                 <div class="table-wrapper">
                     <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th>Action</th></tr></thead>
+                        <thead class="table-light"><tr><th>SL</th><th>Roll</th><th class="no-print">Action</th></tr></thead>
                         <tbody id="expelBody"></tbody>
                     </table>
                 </div>
@@ -118,11 +161,11 @@
         <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center py-3">
             <div class="d-flex align-items-center gap-3 flex-grow-1">
                 <span>উপস্থিত পরীক্ষার্থীর তালিকা</span>
-                <input type="text" id="rollSearch" class="form-control form-control-sm search-box" placeholder="রোল দিয়ে খুঁজুন..." onkeyup="handleSearch()">
+                <input type="text" id="rollSearch" class="form-control form-control-sm search-box no-print" placeholder="রোল দিয়ে খুঁজুন..." onkeyup="handleSearch()">
             </div>
             <div class="d-flex align-items-center">
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="sortPresentTable('asc')">Sort ↑</button>
-                <button class="btn btn-sm btn-outline-primary me-2" onclick="sortPresentTable('desc')">Sort ↓</button>
+                <button class="btn btn-sm btn-outline-primary me-1 no-print" onclick="sortPresentTable('asc')">Sort ↑</button>
+                <button class="btn btn-sm btn-outline-primary me-2 no-print" onclick="sortPresentTable('desc')">Sort ↓</button>
                 <span id="totalCount" class="badge bg-primary fs-6">Present: 0</span>
             </div>
         </div>
@@ -130,12 +173,12 @@
             <div class="table-responsive">
                 <table class="table table-hover align-middle text-center mb-0">
                     <thead class="table-light">
-                        <tr><th>SL</th><th>Roll</th><th class="text-start">Name</th><th>Action</th></tr>
+                        <tr><th>SL</th><th>Roll</th><th class="text-start">Name</th><th class="no-print">Action</th></tr>
                     </thead>
                     <tbody id="mytbody"></tbody>
                 </table>
             </div>
-            <div class="pagination-wrapper d-flex justify-content-between align-items-center">
+            <div class="pagination-wrapper d-flex justify-content-between align-items-center no-print">
                 <div id="pageInfo" class="small text-secondary fw-bold">Showing 0 to 0 of 0</div>
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
@@ -148,18 +191,15 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
+    let totalStudents = [];
     let presentStudents = []; 
-    let filteredStudents = []; // সার্চ এবং পেজিনেশনের জন্য
+    let filteredStudents = []; 
     let absentList = [];
     let vulList = [];
     let expelList = [];
     let examInfo = {};
 
-    // Pagination Settings
     let currentPage = 1;
     const rowsPerPage = 100;
 
@@ -167,22 +207,32 @@
         try {
             const storedStudents = sessionStorage.getItem('currentStudents');
             const storedExamInfo = sessionStorage.getItem('currentExamInfo');
+            
             if (storedStudents && storedExamInfo) {
-                presentStudents = JSON.parse(storedStudents);
+                const parsedStudents = JSON.parse(storedStudents);
+                
+                // Deep copy variables
+                presentStudents = JSON.parse(JSON.stringify(parsedStudents));
+                totalStudents = JSON.parse(JSON.stringify(parsedStudents));
+                
                 examInfo = JSON.parse(storedExamInfo);
                 document.getElementById('displaySubName').innerText = examInfo.subName || '---';
                 document.getElementById('displaySubCode').innerText = examInfo.subCode || '---';
-                document.getElementById('displayDate').innerText = examInfo.examDate || '---';
+                const today = new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                document.getElementById('displayDate').innerText = today; 
                 
-                filteredStudents = [...presentStudents]; // ইনিশিয়াল কপি
+                filteredStudents = [...presentStudents]; 
                 renderMainTable();
-            } else {
-                Swal.fire("Error", "No student data found!", "error");
+            } else {  
+                Swal.fire("Error", "No student data found in Session!", "error"); 
             }
-        } catch (e) { console.error("Init Error:", e); }
+        } catch (e) { 
+            console.error("Init Error:", e); 
+        }
     };
 
-    // ফাস্ট রেন্ডারিং ফাংশন
+
+
     function renderMainTable() {
         const tbody = document.getElementById("mytbody");
         if (!tbody) return;
@@ -199,7 +249,7 @@
                 <td class="small text-secondary">${start + index + 1}</td>
                 <td class="fw-bold text-primary">${s.roll || 'N/A'}</td>
                 <td class="text-start">${s.name || 'N/A'}</td>
-                <td>
+                <td class="no-print">
                     <button class="btn btn-sm btn-warning" onclick="handleAction('${s.roll}', 'absent')">Absent</button>
                     <button class="btn btn-sm btn-outline-secondary mx-1" onclick="handleAction('${s.roll}', 'vul')">Vul Britto</button>
                     <button class="btn btn-sm btn-danger" onclick="handleAction('${s.roll}', 'expel')">Expel</button>
@@ -215,7 +265,6 @@
         document.getElementById("totalCount").innerText = "Present: " + presentStudents.length;
     }
 
-    // সার্চ হ্যান্ডলার
     function handleSearch() {
         const term = document.getElementById("rollSearch").value.trim().toUpperCase();
         currentPage = 1; 
@@ -223,9 +272,8 @@
         renderMainTable();
     }
 
-    // পেজ পরিবর্তন
     function changePage(dir) {
-        const maxPage = Math.ceil(filteredStudents.length / rowsPerPage);
+        const maxPage = Math.ceil(filteredStudents.length / rowsPerPage) || 1;
         const next = currentPage + dir;
         if (next >= 1 && next <= maxPage) {
             currentPage = next;
@@ -246,10 +294,9 @@
             const rB = Number(b.roll) || 0;
             return order === 'asc' ? rA - rB : rB - rA;
         });
-        handleSearch(); // সর্ট করার পর বর্তমান সার্চ অনুযায়ী ফিল্টার আপডেট
+        handleSearch(); 
     }
 
-    // মেইন লজিক হ্যান্ডলার
     function handleAction(roll, type) {
         const idx = presentStudents.findIndex(s => String(s.roll) === String(roll));
         if (idx === -1) return;
@@ -259,18 +306,17 @@
             if (type === 'absent') absentList.push(student);
             else expelList.push(student);
             
-            presentStudents.splice(idx, 1); // মেইন লিস্ট থেকে আউট
+            presentStudents.splice(idx, 1); 
         } else if (type === 'vul') {
             if (!vulList.find(v => String(v.roll) === String(roll))) {
                 vulList.push(student);
-                // নোট: সে প্রেজেন্ট লিস্টে থাকবেই
             } else {
-                Swal.fire("Note", "এই রোলটি অলরেডি ভুল বৃত্ত তালিকায় আছে।", "info");
+                Swal.fire("Note", "এই রোলটি অলরেডি ভুল বৃত্ত তালিকায় আছে।", "info");
                 return;
             }
         }
         
-        handleSearch(); // টেবিল আপডেট
+        handleSearch(); 
         updateSubTables();
     }
 
@@ -289,7 +335,7 @@
             <tr>
                 <td>${i+1}</td>
                 <td class="fw-bold">${s.roll}</td>
-                <td><button class="btn btn-dark btn-sm py-0" onclick="restoreStudent('${type}', ${i})">×</button></td>
+                <td class="no-print"><button class="btn btn-dark btn-sm py-0" onclick="restoreStudent('${type}', ${i})">×</button></td>
             </tr>
         `).join('');
     }
@@ -304,8 +350,214 @@
         updateSubTables();
     }
 
+    async function downloadPDF() {
 
-  function downloadShironam() {
+        if(totalStudents && totalStudents.length > 200){
+        Swal.fire({icon: 'warning',title: 'সতর্কতা',text: 'পরীক্ষার্থীর সংখ্যা ২০০ এর অধিক! অতএব, শিরোনাম পত্র PDF হিসেবে নয়, Excel এ Download করুন।',
+        confirmButtonText: 'ঠিক আছে', allowOutsideClick: true});
+        return;
+        }
+        Swal.fire({ title: 'PDF জেনারেট হচ্ছে...', html: 'ডাটা প্রসেস করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন।', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+        try {
+            const examName = document.getElementById('examNameSelect')?.value || 'Diploma in Engineering';
+            const subName = examInfo.subName || '---';
+            const subCode = examInfo.subCode || '---';
+            const today = new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const examDate = today + " খ্রি.";
+
+            const presentRolls = presentStudents.length > 0 ? presentStudents.map(s => s.roll).join(', ') : '';
+            const vulRolls = vulList.length > 0 ? vulList.map(s => s.roll).join(', ') : '';
+            const absentRolls = absentList.length > 0 ? absentList.map(s => s.roll).join(', ') : '';
+            const expelRolls = expelList.length > 0 ? expelList.map(s => s.roll).join(', ') : '';
+
+            // Create temporary container for html2pdf conversion
+            const element = document.createElement('div');
+            element.className = 'pdf-template';
+
+            element.innerHTML = `
+                <style>
+                    .pdf-template {
+                        width: 100%;
+                        min-height: 275mm; 
+                        box-sizing: border-box;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        font-family: Arial, Helvetica, 'Segoe UI', 'Nikosh', sans-serif;
+                        color: #000;
+                        background: #fff;
+                        font-size: 12px;
+                        line-height: 1.4;
+                    }
+
+                    .pdf-body-content {
+                        flex-grow: 1;
+                    }
+
+                    .pdf-header { text-align: center; margin-bottom: 12px; }
+                    .pdf-header h2 { font-size: 22px; font-weight: bold; margin: 0; }
+                    .pdf-header p { font-size: 14px; margin: 2px 0; }
+
+                    .pdf-header h3 { 
+                        font-size: 24px; 
+                        font-weight: bold; 
+                        margin: 4px auto; 
+                        padding-bottom: 2px;
+                        border-bottom: 2px solid #000;
+                        display: inline-block;
+                    }
+                                    
+
+                    .pdf-info-table { width: 100%; margin-bottom: 10px; border-collapse: collapse; font-size: 16px; }
+                    .pdf-info-table td { padding: 2px 0; vertical-align: top; }
+
+                    .pdf-box-section { margin-bottom: 15px; }
+                    .pdf-box-title {font-size: 14px; margin-bottom: 3px; }
+                    .pdf-box-content {
+                        border: 1px solid #000;
+                        min-height: 45px;
+                        padding: 4px 8px;
+                        font-size: 11px;
+                        line-height: 1.3;
+                        word-wrap: break-word;
+                    }
+                    .pdf-box-content.tall { min-height: 70px; }
+                    .pdf-box-total { text-align: right; font-size: 16px; margin-top: 4px; }
+                    .pdf-dots { border-bottom: 1px dotted #000; display: inline-block; min-width: 110px; text-align: center; font-weight: bold; }
+
+                    /* ফূটার পার্ট - অ্যালাইনমেন্ট আপডেট */
+                    .pdf-footer {
+                        margin-top: auto;
+                        padding-top: 10px;
+                    }
+
+                    .pdf-signatures {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        width: 100%;
+                    }
+                    
+                    .pdf-sign-block { 
+                        text-align: center; 
+                        font-weight: bold; 
+                        font-size: 12px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+
+                    .pdf-sign-line {
+                        border-top: 1px solid #000;
+                        margin-bottom: 4px;
+                        display: inline-block;
+                    }
+
+                    .pdf-sign-block.left .pdf-sign-line {
+                        width: 160px;
+                    }
+
+                    .pdf-sign-block.right .pdf-sign-line {
+                        width: 230px;
+                    }
+                </style>
+
+                <div class="pdf-body-content">
+                    <div class="pdf-header">
+                        <h2>বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা</h2>
+                        <p>উত্তরপত্রের কভার পৃষ্ঠার প্রতিটি বক্সের জন্য প্রথম অংশের</p>
+                        <h3>শিরোনাম পত্র</h3>
+                    </div>
+
+                    <table class="pdf-info-table">
+                        <tr>
+                            <td style="width: 18%; font-weight: normal;">পরীক্ষার নামঃ </td>
+                            <td colspan="3" style="font-weight: bold;"> ${examName}</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: normal;">পরীক্ষা কেন্দ্রঃ </td>
+                            <td style="font-weight: bold; width: 52%;"> পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও</td>
+                            <td style="font-weight: normal; width: 12%; text-align: right;">কেন্দ্র কোডঃ </td>
+                            <td style="font-weight: bold; width: 18%; font-size: 14px;">&nbsp; ১২১৪৪</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: normal;">পরীক্ষার বিষয় (পত্রসহ): </td>
+                            <td style="font-weight: bold;">${subName}</td>
+                            <td style="font-weight: normal; text-align: right;">বিষয় কোডঃ</td>
+                            <td style="font-weight: bold;">&nbsp; ${subCode}</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: normal;">পরীক্ষার তারিখঃ</td>
+                            <td colspan="3" style="font-weight: bold;">${examDate}</td>
+                        </tr>
+                    </table>
+
+                    <div class="pdf-box-section">
+                        <div class="pdf-box-title">বাক্সের প্রথম অংশের রোল নম্বর সমূহঃ</div>
+                        <div class="pdf-box-content tall">${presentRolls}</div>
+                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${presentStudents.length}</span> জন</div>
+                    </div>
+
+                    <div class="pdf-box-section">
+                        <div class="pdf-box-title">ভুল বৃত্ত ভরাটকৃত রোল নম্বর সমূহ (সঠিকটি লিখুন):</div>
+                        <div class="pdf-box-content">${vulRolls}</div>
+                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${vulList.length}</span> জন</div>
+                    </div>
+
+                    <div class="pdf-box-section">
+                        <div class="pdf-box-title">অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):</div>
+                        <div class="pdf-box-content">${absentRolls}</div>
+                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${absentList.length}</span> জন</div>
+                    </div>
+
+                    <div class="pdf-box-section">
+                        <div class="pdf-box-title">বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):</div>
+                        <div class="pdf-box-content">${expelRolls}</div>
+                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${expelList.length}</span> জন</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; font-size: 14px;"> উপস্থিত পরীক্ষার্থীর সংখ্যাঃ <span class="pdf-dots" style="min-width: 100px;">${presentStudents.length}</span> জন </div>
+                    <div style="margin-bottom: 20px; font-size: 14px;"> প্রেরিত দ্বিতীয় বাক্সে প্রথম অংশের সংখ্যাঃ <span class="pdf-dots" style="min-width: 100px;"></span> টি </div>
+                </div>
+
+                <div class="pdf-footer">
+                    <div class="pdf-signatures">
+                        <div class="pdf-sign-block left">
+                            <span class="pdf-sign-line"></span>
+                            প্রস্তুতকারীর স্বাক্ষর
+                        </div>
+                        <div class="pdf-sign-block right">
+                            <span class="pdf-sign-line"></span>
+                            পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তা/কেন্দ্রঃ<br>
+                            স্বাক্ষর ও সীলমোহর
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(element);
+
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     `Shironam_Potro_${subCode}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            await html2pdf().set(opt).from(element).save();
+            document.body.removeChild(element);
+            Swal.close();
+
+        } catch (error) {
+            console.error("PDF Generation Error:", error);
+            Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে। রিফ্রেশ দিয়ে আবার Try করুন।", "error");
+        }
+    }
+
+    function downloadShironam() {
     const examName = document.getElementById('examNameSelect').value;
     const subCode = examInfo.subCode || '---';
     const subName = examInfo.subName || '---';
@@ -316,9 +568,29 @@
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Shironam');
 
+    worksheet.pageSetup = {
+        paperSize: 9,              // 9 = A4 Paper Size
+        orientation: 'portrait',   // Portrait Mode
+        margins: {
+            left: 0.5,             // Margin in inches (~1.27 cm)
+            right: 0.5,
+            top: 0.5,
+            bottom: 0.5,
+            header: 0.3,
+            footer: 0.3
+        },
+        fitToPage: true,           // ১ পাতায় ফিট করার জন্য 
+        fitToWidth: 1,             // প্রস্থে ১ পৃষ্ঠা
+        fitToHeight: 0,            // উচ্চতা অনুযায়ী প্রাকৃতিকভাবে বাড়বে
+        horizontalCentered: true   // প্রিন্ট করার সময় মাঝখানে (Center) থাকবে
+    };
+
+    worksheet.views = [ { showGridLines: true } ];
+
+    // Column Widths setup
     worksheet.columns = [
         { width: 6 }, { width: 8 }, { width: 9 }, { width: 9 }, { width: 9 }, 
-        { width: 9 }, { width: 9 }, { width: 14 }, { width: 12 }, { width: 6 }
+        { width: 9 }, { width: 12 }, { width: 13 }, { width: 12 }, { width: 6 }
     ];
 
     const addCenteredRow = (text, size, bold) => {
@@ -329,29 +601,26 @@
         return row;
     };
 
-    addCenteredRow("বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা", 14, true);
-    addCenteredRow("উত্তরপত্রের কভার পৃষ্ঠার প্রতিটি বক্সের জন্য প্রথম অংশের", 10, false);
-    addCenteredRow("শিরোনাম পত্র", 18, true).getCell(1).font.underline = true;
+    addCenteredRow("বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা", 20, true);
+    addCenteredRow("উত্তরপত্রের কভার পৃষ্ঠার প্রতিটি বক্সের জন্য প্রথম অংশের", 14, false);
+    addCenteredRow("শিরোনাম পত্র", 26, true).getCell(1).font.underline = true;
     worksheet.addRow([]);
 
-    const infoStyle = { name: 'Nikosh', size: 11, bold: true };
-    const labelStyle = { name: 'Nikosh', size: 11, bold: false };
+    const infoStyle = { name: 'Nikosh', size: 14, bold: true };
+    const labelStyle = { name: 'Nikosh', size: 14, bold: false };
 
-    // লাইন ১
     const r1 = worksheet.addRow(["পরীক্ষার নামঃ", "", examName]);
     worksheet.mergeCells(`A${r1.number}:B${r1.number}`);
     worksheet.mergeCells(`C${r1.number}:J${r1.number}`);
     r1.getCell(1).font = labelStyle; r1.getCell(3).font = infoStyle;
 
-    // লাইন ২: কেন্দ্র ও কেন্দ্র কোড
     const r2 = worksheet.addRow(["পরীক্ষা কেন্দ্রঃ", "", "পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও", "", "", "", "", "কেন্দ্র কোডঃ", "১২১৪৪"]);
     worksheet.mergeCells(`A${r2.number}:B${r2.number}`);
     worksheet.mergeCells(`C${r2.number}:G${r2.number}`);
     worksheet.mergeCells(`I${r2.number}:J${r2.number}`);
-    r2.getCell(1).font = labelStyle; r2.getCell(3).font = infoStyle; 
-    r2.getCell(8).font = labelStyle; r2.getCell(9).font = infoStyle;
+    r2.getCell(1).font = labelStyle; r2.getCell(3).font = { name: 'Nikosh', size: 12, bold: true }; 
+    r2.getCell(8).font = labelStyle; r2.getCell(9).font = { name: 'Nikosh', size: 14, bold: true };
 
-    // লাইন ৩: বিষয় ও বিষয় কোড
     const r3 = worksheet.addRow(["পরীক্ষার বিষয় (পত্রসহ) :", "", "", subName, "", "", "", "বিষয় কোডঃ", subCode]);
     worksheet.mergeCells(`A${r3.number}:C${r3.number}`);
     worksheet.mergeCells(`D${r3.number}:G${r3.number}`);
@@ -359,7 +628,6 @@
     r3.getCell(1).font = labelStyle; r3.getCell(4).font = infoStyle; 
     r3.getCell(8).font = labelStyle; r3.getCell(9).font = infoStyle;
 
-    // লাইন ৪: তারিখ
     const r4 = worksheet.addRow(["পরীক্ষার তারিখঃ", "", "", examDate + " খ্রি."]);
     worksheet.mergeCells(`A${r4.number}:C${r4.number}`);
     r4.getCell(1).font = labelStyle; r4.getCell(4).font = infoStyle;
@@ -368,19 +636,39 @@
 
     const createBoxSection = (title, list, boxHeight) => {
         const titleRow = worksheet.addRow([title]);
-        titleRow.getCell(1).font = { name: 'Nikosh', bold: true };
+        titleRow.getCell(1).font = { name: 'Nikosh', size: 14, bold: false };
 
         const text = list.length > 0 ? list.map(s => s.roll).join(', ') : "";
-        const row = worksheet.addRow([text]);
-        worksheet.mergeCells(`A${row.number}:J${row.number + boxHeight}`);
-        row.height = 25 * (boxHeight + 1); // Nikosh ফন্টের জন্য হাইট একটু বাড়ানো হয়েছে
-        row.getCell(1).alignment = { wrapText: true, vertical: 'top', padding: { top: 5, left: 5 } };
-        row.getCell(1).font = { name: 'Nikosh', size: 11 };
-        row.getCell(1).border = {
-            top: { style: 'thin' }, left: { style: 'thin' },
-            bottom: { style: 'thin' }, right: { style: 'thin' }
-        };
+        
+        const startRow = worksheet.addRow([text]).number;
+        for (let i = 0; i < boxHeight; i++) {
+            worksheet.addRow([]);
+        }
+        const endRow = startRow + boxHeight;
 
+        // ১. প্রথমে সেলগুলো মার্জ করুন
+        worksheet.mergeCells(`A${startRow}:J${endRow}`);
+        
+        // ২. মেইন সেল ফরম্যাটিং
+        const mainCell = worksheet.getCell(`A${startRow}`);
+        mainCell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+        mainCell.font = { name: 'Nikosh', size: 10 };
+
+        // ৩. মার্জ করা বক্সের চারপাশের আউটলাইন বর্ডার সঠিকভাবে দেওয়া
+        for (let r = startRow; r <= endRow; r++) {
+            for (let c = 1; c <= 10; c++) {
+                const cell = worksheet.getCell(r, c);
+                
+                cell.border = {
+                    top: r === startRow ? { style: 'thin' } : cell.border?.top,
+                    bottom: r === endRow ? { style: 'thin' } : cell.border?.bottom,
+                    left: c === 1 ? { style: 'thin' } : cell.border?.left,
+                    right: c === 10 ? { style: 'thin' } : cell.border?.right
+                };
+            }
+        }
+
+        // ৪. নিচের মোট জন লেখার রো
         const totalRow = worksheet.addRow(["", "", "", "", "", "মোটঃ", list.length, "", "", "জন"]);
         worksheet.mergeCells(`G${totalRow.number}:I${totalRow.number}`);
         totalRow.eachCell(cell => cell.font = { name: 'Nikosh' });
@@ -388,36 +676,73 @@
         totalRow.getCell(7).alignment = { horizontal: 'center' };
         totalRow.getCell(7).font = { name: 'Nikosh', bold: true };
         totalRow.getCell(7).border = { bottom: { style: 'dotted' } };
+        
         worksheet.addRow([]);
     };
 
-    createBoxSection("বাক্সের প্রথম অংশের রোল নম্বর সমূহঃ", presentStudents, 4);
-    createBoxSection("ভুল বৃত্ত ভরাটকৃত রোল নম্বর সমূহ (সঠিকটি লিখুন):", vulList, 1);
-    createBoxSection("অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", absentList, 1);
-    createBoxSection("বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", expelList, 1);
+    createBoxSection("বাক্সের প্রথম অংশের রোল নম্বর সমূহঃ", presentStudents, 6);
+    createBoxSection("ভুল বৃত্ত ভরাটকৃত রোল নম্বর সমূহ (সঠিকটি লিখুন):", vulList, 2);
+    createBoxSection("অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", absentList, 2);
+    createBoxSection("বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", expelList, 2);
 
     const finalCountRow = worksheet.addRow(["উপস্থিত পরীক্ষার্থীর সংখ্যা :", "", "", "", presentStudents.length, "", "", "", "", "জন"]);
     worksheet.mergeCells(`A${finalCountRow.number}:D${finalCountRow.number}`);
     worksheet.mergeCells(`E${finalCountRow.number}:I${finalCountRow.number}`);
     finalCountRow.eachCell(cell => cell.font = { name: 'Nikosh' });
-    finalCountRow.getCell(5).font = { name: 'Nikosh', bold: true };
+    finalCountRow.getCell(5).font = { name: 'Nikosh', size: 16, bold: true };
     finalCountRow.getCell(5).alignment = { horizontal: 'center' };
     finalCountRow.getCell(5).border = { bottom: { style: 'dotted' } };
-    
+
     worksheet.addRow([]); worksheet.addRow([]);
 
-    const signRow = worksheet.addRow(["প্রস্তুতকারীর স্বাক্ষর", "", "", "", "পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তা/কেন্দ্রঃ"]);
-    const signRow2 = worksheet.addRow(["__________________", "", "", "", "স্বাক্ষর ও সীলমোহর"]);
-    [signRow, signRow2].forEach(row => {
-        row.eachCell(cell => cell.font = { name: 'Nikosh', bold: true });
-    });
-    signRow2.getCell(5).alignment = { horizontal: 'center' };
+    const finalInfoRow = worksheet.addRow(["প্রেরিত দ্বিতীয় বাক্সে প্রথম অংশের সংখ্যা :", "", "", "", "", "", "", "", "", "টি"]);
+    worksheet.mergeCells(`A${finalInfoRow.number}:D${finalInfoRow.number}`);
+    worksheet.mergeCells(`E${finalInfoRow.number}:I${finalInfoRow.number}`);
+    finalInfoRow.eachCell(cell => cell.font = { name: 'Nikosh' });
+    finalInfoRow.getCell(5).font = { name: 'Nikosh', bold: true };
+    finalInfoRow.getCell(5).alignment = { horizontal: 'center' };
+    finalInfoRow.getCell(5).border = { bottom: { style: 'dotted' } };
 
-    worksheet.eachRow((row) => {
-        row.eachCell((cell) => {
-            if (cell.font) { cell.font.name = 'Nikosh'; } else { cell.font = { name: 'Nikosh' }; }
-        });
-    });
+    worksheet.addRow([]); worksheet.addRow([]); worksheet.addRow([]);
+
+    // ==========================================
+    // ✍️ Signature Section עם Top Border
+    // ==========================================
+    
+    // ১. প্রথম লাইন: প্রস্তুতকারীর স্বাক্ষর ও ভারপ্রাপ্ত কর্মকর্তার লাইন ১
+    const signRow1 = worksheet.addRow(["প্রস্তুতকারীর স্বাক্ষর", "", "", "", "", "", "পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তার", "", "", ""]);
+    
+    // সেল মার্জ করা
+    worksheet.mergeCells(`A${signRow1.number}:C${signRow1.number}`); // প্রস্তুতকারীর জন্য A-C
+    worksheet.mergeCells(`G${signRow1.number}:J${signRow1.number}`); // ভারপ্রাপ্ত কর্মকর্তার জন্য G-J
+
+    // Alignment এবং Font সেটআপ
+    const prepCell1 = signRow1.getCell(1);
+    prepCell1.font = { name: 'Nikosh', size: 12, bold: true };
+    prepCell1.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    const officerCell1 = signRow1.getCell(7);
+    officerCell1.font = { name: 'Nikosh', size: 12, bold: true };
+    officerCell1.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // প্রস্তুতকারীর টপ বর্ডার (দাগ)
+    for (let col = 1; col <= 3; col++) {
+        signRow1.getCell(col).border = { top: { style: 'thin' } };
+    }
+
+    // ভারপ্রাপ্ত কর্মকর্তার টপ বর্ডার (দাগ)
+    for (let col = 7; col <= 10; col++) {
+        signRow1.getCell(col).border = { top: { style: 'thin' } };
+    }
+
+    // ২. দ্বিতীয় লাইন: "স্বাক্ষর ও সীলমোহর"
+    const signRow2 = worksheet.addRow(["", "", "", "", "", "", "স্বাক্ষর ও সীলমোহর", "", "", ""]);
+    worksheet.mergeCells(`G${signRow2.number}:J${signRow2.number}`);
+    
+    const officerCell2 = signRow2.getCell(7);
+    officerCell2.font = { name: 'Nikosh', size: 12, bold: true };
+    officerCell2.alignment = { horizontal: 'center', vertical: 'middle' };
+
 
     workbook.xlsx.writeBuffer()
         .then(buffer => {
