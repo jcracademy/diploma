@@ -8,7 +8,8 @@
     <!-- CSS Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&display=swap" rel="stylesheet">
+    <!-- Google Font: Noto Serif Bengali & Tiro Bangla for smooth rendering -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Tiro+Bangla&display=swap" rel="stylesheet">
 
     <!-- JS Dependencies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -17,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 50px; }
+        body { background: #f4f6f9; font-family: 'Noto Serif Bengali', 'Tiro Bangla', serif; padding-bottom: 50px; }
         .sticky-header {
             position: sticky; top: 0; background: #f4f6f9; z-index: 1000; padding-top: 15px; padding-bottom: 5px; border-bottom: 2px solid #ddd; margin-bottom: 10px;
         }
@@ -31,36 +32,6 @@
         .pagination-wrapper { background: #fff; padding: 12px; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
         .page-link { cursor: pointer; }
         .search-box { max-width: 300px; border-color: #0d6efd; }
-
-        /* PDF Export Template Styling */
-        .pdf-template {
-            font-family: Arial, Helvetica, 'Segoe UI', 'Nikosh', sans-serif;
-            color: #000;
-            background: #fff;
-            padding: 20px 10px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .pdf-header { text-align: center; margin-bottom: 15px; }
-        .pdf-header h2 { font-size: 20px; font-weight: bold; margin: 0; }
-        .pdf-header p { font-size: 13px; margin: 2px 0; }
-        .pdf-header h3 { font-size: 22px; font-weight: bold; margin: 5px 0; }
-        
-        .pdf-info-table { width: 100%; margin-bottom: 15px; border-collapse: collapse; }
-        .pdf-info-table td { padding: 3px 0; vertical-align: top; }
-        
-        .pdf-box-section { margin-bottom: 12px; }
-        .pdf-box-title { font-weight: bold; font-size: 13px; margin-bottom: 3px; }
-        .pdf-box-content {
-            border: 1px solid #000;
-            min-height: 65px;
-            padding: 6px 10px;
-            font-size: 10px;
-            word-wrap: break-word;
-        }
-        .pdf-box-content.tall { min-height: 100px; }
-        .pdf-box-total { text-align: right; font-size: 13px; margin-top: 3px; }
-        .pdf-dots { border-bottom: 1px dotted #000; display: inline-block; min-width: 60px; text-align: center; font-weight: bold; }
 
         @media print {
             .no-print { display: none !important; }
@@ -203,6 +174,13 @@
     let currentPage = 1;
     const rowsPerPage = 100;
 
+    // Helper Function: Convert English numbers to Bangla numbers
+    function toBanglaNum(num) {
+        if (num === undefined || num === null) return '';
+        const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        return num.toString().replace(/\d/g, x => banglaDigits[x]);
+    }
+
     window.onload = function() {
         try {
             const storedStudents = sessionStorage.getItem('currentStudents');
@@ -211,13 +189,13 @@
             if (storedStudents && storedExamInfo) {
                 const parsedStudents = JSON.parse(storedStudents);
                 
-                // Deep copy variables
                 presentStudents = JSON.parse(JSON.stringify(parsedStudents));
                 totalStudents = JSON.parse(JSON.stringify(parsedStudents));
                 
                 examInfo = JSON.parse(storedExamInfo);
                 document.getElementById('displaySubName').innerText = examInfo.subName || '---';
-                document.getElementById('displaySubCode').innerText = examInfo.subCode || '---';
+                document.getElementById('displaySubCode').innerText = toBanglaNum(examInfo.subCode) || '---';
+                
                 const today = new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 document.getElementById('displayDate').innerText = today; 
                 
@@ -230,8 +208,6 @@
             console.error("Init Error:", e); 
         }
     };
-
-
 
     function renderMainTable() {
         const tbody = document.getElementById("mytbody");
@@ -351,217 +327,234 @@
     }
 
     async function downloadPDF() {
-
-        if(totalStudents && totalStudents.length > 200){
-        Swal.fire({icon: 'warning',title: 'সতর্কতা',text: 'পরীক্ষার্থীর সংখ্যা ২০০ এর অধিক! অতএব, শিরোনাম পত্র PDF হিসেবে নয়, Excel এ Download করুন।',
-        confirmButtonText: 'ঠিক আছে', allowOutsideClick: true});
+    if(totalStudents && totalStudents.length > 200){
+        Swal.fire({
+            icon: 'warning',
+            title: 'সতর্কতা',
+            text: 'পরীক্ষার্থীর সংখ্যা ২০০ এর অধিক! অতএব, শিরোনাম পত্র PDF হিসেবে নয়, Excel এ Download করুন।',
+            confirmButtonText: 'ঠিক আছে', 
+            allowOutsideClick: true
+        });
         return;
-        }
-        Swal.fire({ title: 'PDF জেনারেট হচ্ছে...', html: 'ডাটা প্রসেস করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন।', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
-
-        try {
-            const examName = document.getElementById('examNameSelect')?.value || 'Diploma in Engineering';
-            const subName = examInfo.subName || '---';
-            const subCode = examInfo.subCode || '---';
-            const today = new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const examDate = today + " খ্রি.";
-
-            const presentRolls = presentStudents.length > 0 ? presentStudents.map(s => s.roll).join(', ') : '';
-            const vulRolls = vulList.length > 0 ? vulList.map(s => s.roll).join(', ') : '';
-            const absentRolls = absentList.length > 0 ? absentList.map(s => s.roll).join(', ') : '';
-            const expelRolls = expelList.length > 0 ? expelList.map(s => s.roll).join(', ') : '';
-
-            // Create temporary container for html2pdf conversion
-            const element = document.createElement('div');
-            element.className = 'pdf-template';
-
-            element.innerHTML = `
-                <style>
-                    .pdf-template {
-                        width: 100%;
-                        min-height: 275mm; 
-                        box-sizing: border-box;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
-                        font-family: Arial, Helvetica, 'Segoe UI', 'Nikosh', sans-serif;
-                        color: #000;
-                        background: #fff;
-                        font-size: 12px;
-                        line-height: 1.4;
-                    }
-
-                    .pdf-body-content {
-                        flex-grow: 1;
-                    }
-
-                    .pdf-header { text-align: center; margin-bottom: 12px; }
-                    .pdf-header h2 { font-size: 22px; font-weight: bold; margin: 0; }
-                    .pdf-header p { font-size: 14px; margin: 2px 0; }
-
-                    .pdf-header h3 { 
-                        font-size: 24px; 
-                        font-weight: bold; 
-                        margin: 4px auto; 
-                        padding-bottom: 2px;
-                        border-bottom: 2px solid #000;
-                        display: inline-block;
-                    }
-                                    
-
-                    .pdf-info-table { width: 100%; margin-bottom: 10px; border-collapse: collapse; font-size: 16px; }
-                    .pdf-info-table td { padding: 2px 0; vertical-align: top; }
-
-                    .pdf-box-section { margin-bottom: 15px; }
-                    .pdf-box-title {font-size: 14px; margin-bottom: 3px; }
-                    .pdf-box-content {
-                        border: 1px solid #000;
-                        min-height: 45px;
-                        padding: 4px 8px;
-                        font-size: 11px;
-                        line-height: 1.3;
-                        word-wrap: break-word;
-                    }
-                    .pdf-box-content.tall { min-height: 70px; }
-                    .pdf-box-total { text-align: right; font-size: 16px; margin-top: 4px; }
-                    .pdf-dots { border-bottom: 1px dotted #000; display: inline-block; min-width: 110px; text-align: center; font-weight: bold; }
-
-                    /* ফূটার পার্ট - অ্যালাইনমেন্ট আপডেট */
-                    .pdf-footer {
-                        margin-top: auto;
-                        padding-top: 10px;
-                    }
-
-                    .pdf-signatures {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-start;
-                        width: 100%;
-                    }
-                    
-                    .pdf-sign-block { 
-                        text-align: center; 
-                        font-weight: bold; 
-                        font-size: 12px;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                    }
-
-                    .pdf-sign-line {
-                        border-top: 1px solid #000;
-                        margin-bottom: 4px;
-                        display: inline-block;
-                    }
-
-                    .pdf-sign-block.left .pdf-sign-line {
-                        width: 160px;
-                    }
-
-                    .pdf-sign-block.right .pdf-sign-line {
-                        width: 230px;
-                    }
-                </style>
-
-                <div class="pdf-body-content">
-                    <div class="pdf-header">
-                        <h2>বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা</h2>
-                        <p>উত্তরপত্রের কভার পৃষ্ঠার প্রতিটি বক্সের জন্য প্রথম অংশের</p>
-                        <h3>শিরোনাম পত্র</h3>
-                    </div>
-
-                    <table class="pdf-info-table">
-                        <tr>
-                            <td style="width: 18%; font-weight: normal;">পরীক্ষার নামঃ </td>
-                            <td colspan="3" style="font-weight: bold;"> ${examName}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight: normal;">পরীক্ষা কেন্দ্রঃ </td>
-                            <td style="font-weight: bold; width: 52%;"> পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও</td>
-                            <td style="font-weight: normal; width: 12%; text-align: right;">কেন্দ্র কোডঃ </td>
-                            <td style="font-weight: bold; width: 18%; font-size: 14px;">&nbsp; ১২১৪৪</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight: normal;">পরীক্ষার বিষয় (পত্রসহ): </td>
-                            <td style="font-weight: bold;">${subName}</td>
-                            <td style="font-weight: normal; text-align: right;">বিষয় কোডঃ</td>
-                            <td style="font-weight: bold;">&nbsp; ${subCode}</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight: normal;">পরীক্ষার তারিখঃ</td>
-                            <td colspan="3" style="font-weight: bold;">${examDate}</td>
-                        </tr>
-                    </table>
-
-                    <div class="pdf-box-section">
-                        <div class="pdf-box-title">বাক্সের প্রথম অংশের রোল নম্বর সমূহঃ</div>
-                        <div class="pdf-box-content tall">${presentRolls}</div>
-                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${presentStudents.length}</span> জন</div>
-                    </div>
-
-                    <div class="pdf-box-section">
-                        <div class="pdf-box-title">ভুল বৃত্ত ভরাটকৃত রোল নম্বর সমূহ (সঠিকটি লিখুন):</div>
-                        <div class="pdf-box-content">${vulRolls}</div>
-                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${vulList.length}</span> জন</div>
-                    </div>
-
-                    <div class="pdf-box-section">
-                        <div class="pdf-box-title">অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):</div>
-                        <div class="pdf-box-content">${absentRolls}</div>
-                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${absentList.length}</span> জন</div>
-                    </div>
-
-                    <div class="pdf-box-section">
-                        <div class="pdf-box-title">বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):</div>
-                        <div class="pdf-box-content">${expelRolls}</div>
-                        <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${expelList.length}</span> জন</div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; font-size: 14px;"> উপস্থিত পরীক্ষার্থীর সংখ্যাঃ <span class="pdf-dots" style="min-width: 100px;">${presentStudents.length}</span> জন </div>
-                    <div style="margin-bottom: 20px; font-size: 14px;"> প্রেরিত দ্বিতীয় বাক্সে প্রথম অংশের সংখ্যাঃ <span class="pdf-dots" style="min-width: 100px;"></span> টি </div>
-                </div>
-
-                <div class="pdf-footer">
-                    <div class="pdf-signatures">
-                        <div class="pdf-sign-block left">
-                            <span class="pdf-sign-line"></span>
-                            প্রস্তুতকারীর স্বাক্ষর
-                        </div>
-                        <div class="pdf-sign-block right">
-                            <span class="pdf-sign-line"></span>
-                            পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তা/কেন্দ্রঃ<br>
-                            স্বাক্ষর ও সীলমোহর
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(element);
-
-            const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     `Shironam_Potro_${subCode}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-
-            await html2pdf().set(opt).from(element).save();
-            document.body.removeChild(element);
-            Swal.close();
-
-        } catch (error) {
-            console.error("PDF Generation Error:", error);
-            Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে। রিফ্রেশ দিয়ে আবার Try করুন।", "error");
-        }
     }
 
-    function downloadShironam() {
+    Swal.fire({ 
+        title: 'PDF জেনারেট হচ্ছে...', 
+        html: 'ডাটা প্রসেস করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন।', 
+        allowOutsideClick: false, 
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const examName = document.getElementById('examNameSelect')?.value || 'ডিপ্লোমা ইন ইঞ্জিনিয়ারীং';
+        const subName = examInfo.subName || '---';
+        const subCode = toBanglaNum(examInfo.subCode) || '---';
+        const centerCode = toBanglaNum('12144');
+        
+        const today = new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const examDate = today + " খ্রি.";
+
+        const presentRolls = presentStudents.length > 0 ? presentStudents.map(s => s.roll).join(', ') : '';
+        const vulRolls = vulList.length > 0 ? vulList.map(s => s.roll).join(', ') : '';
+        const absentRolls = absentList.length > 0 ? absentList.map(s => s.roll).join(', ') : '';
+        const expelRolls = expelList.length > 0 ? expelList.map(s => s.roll).join(', ') : '';
+
+        const element = document.createElement('div');
+        element.className = 'pdf-template';
+
+        element.innerHTML = `
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&display=swap');
+
+                .pdf-template {
+                    width: 100%;
+                    height: 270mm;
+                    position: relative;
+                    box-sizing: border-box;
+                    font-family: 'Noto Serif Bengali', serif;
+                    color: #000;
+                    background: #fff;
+                    font-size: 13px;
+                    line-height: 1.4;
+                    padding: 5px;
+                }
+
+                .pdf-header { text-align: center; margin-bottom: 12px; }
+                .pdf-header h2 { font-size: 24px; font-weight: bold; margin: 0; }
+                .pdf-header p { font-size: 14px; margin: 2px 0; }
+
+                .pdf-header h3 { 
+                    font-size: 26px; 
+                    font-weight: bold; 
+                    margin: 4px auto; 
+                    padding-bottom: 2px;
+                    border-bottom: 2px solid #000;
+                    display: inline-block;
+                }
+
+                .pdf-info-table { width: 100%; margin-bottom: 10px; border-collapse: collapse; font-size: 14px; }
+                .pdf-info-table td { padding: 3px 0; vertical-align: bottom; }
+
+                .dashed-val {
+                    border-bottom: 1px dashed #000;
+                    display: inline-block;
+                    width: 100%;
+                    font-weight: bold;
+                    padding-bottom: 1px;
+                }
+
+                .pdf-box-section { margin-bottom: 10px; }
+                .pdf-box-title { font-size: 14px; margin-bottom: 3px; }
+                
+                .pdf-box-content {
+                    border: 1px solid #000;
+                    min-height: 60px;
+                    padding: 4px 8px;
+                    font-size: 12px;
+                    font-family: Arial, Helvetica, sans-serif;
+                    line-height: 1.3;
+                    word-wrap: break-word;
+                }
+                .pdf-box-content2 {
+                    border: 1px solid #000;
+                    min-height: 150px;
+                    padding: 4px 8px;
+                    font-size: 12px;
+                    font-family: Arial, Helvetica, sans-serif;
+                    line-height: 1.3;
+                    word-wrap: break-word;
+                }
+                .pdf-box-total { text-align: right; font-size: 16px; margin-top: 3px; }
+                
+                .pdf-dots { 
+                    border-bottom: 1px dashed #000; 
+                    display: inline-block; 
+                    min-width: 90px; 
+                    text-align: center; 
+                    font-weight: bold; 
+                }
+
+                /* Footer Bottom Absolute Alignment with Matched Top Borders */
+                .pdf-footer-table {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .pdf-footer-table td {
+                    vertical-align: top;
+                    text-align: center;
+                    font-size: 16px;
+                }
+                .pdf-sign-line {
+                    border-top: 1px solid #000;
+                    display: block;
+                    margin: 0 auto 5px auto;
+                }
+            </style>
+
+            <div class="pdf-body-content">
+                <div class="pdf-header">
+                    <h2>বাংলাদেশ কারিগরি শিক্ষা বোর্ড, ঢাকা</h2>
+                    <p>উত্তরপত্রের কভার পৃষ্ঠার প্রতিটি বক্সের জন্য প্রথম অংশের</p>
+                    <h3>শিরোনাম পত্র</h3>
+                </div>
+
+                <table class="pdf-info-table">
+                    <tr>
+                        <td style="width: 15%;">পরীক্ষার নামঃ</td>
+                        <td colspan="3"><span class="dashed-val">${examName}</span></td>
+                    </tr>
+                    <tr>
+                        <td style="width: 15%;">পরীক্ষা কেন্দ্রঃ</td>
+                        <td style="width: 50%;"><span class="dashed-val">পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও</span></td>
+                        <td style="width: 12%; text-align: right; padding-right: 5px;">কেন্দ্র কোডঃ</td>
+                        <td style="width: 23%;"><span class="dashed-val text-center">${centerCode}</span></td>
+                    </tr>
+                    <tr>
+                        <td>পরীক্ষার বিষয় (পত্রসহ):</td>
+                        <td><span class="dashed-val">${subName}</span></td>
+                        <td style="text-align: right; padding-right: 5px;">বিষয় কোডঃ</td>
+                        <td><span class="dashed-val text-center">${subCode}</span></td>
+                    </tr>
+                    <tr>
+                        <td>পরীক্ষার তারিখঃ</td>
+                        <td colspan="3"><span class="dashed-val">${examDate}</span></td>
+                    </tr>
+                </table>
+
+                <div class="pdf-box-section">
+                    <div class="pdf-box-title">বাক্সের প্রথম অংশের রোল নম্বর সমূহঃ</div>
+                    <div class="pdf-box-content2 tall">${presentRolls}</div>
+                    <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${toBanglaNum(presentStudents.length)}</span> জন</div>
+                </div>
+
+                <div class="pdf-box-section">
+                    <div class="pdf-box-title">ভুল বৃত্ত ভরাটকৃত রোল নম্বর সমূহ (সঠিক নম্বরটি লিখুন):</div>
+                    <div class="pdf-box-content">${vulRolls}</div>
+                    <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${toBanglaNum(vulList.length)}</span> জন</div>
+                </div>
+
+                <div class="pdf-box-section">
+                    <div class="pdf-box-title">অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):</div>
+                    <div class="pdf-box-content">${absentRolls}</div>
+                    <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${toBanglaNum(absentList.length)}</span> জন</div>
+                </div>
+
+                <div class="pdf-box-section">
+                    <div class="pdf-box-title">বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):</div>
+                    <div class="pdf-box-content">${expelRolls}</div>
+                    <div class="pdf-box-total">মোটঃ <span class="pdf-dots">${toBanglaNum(expelList.length)}</span> জন</div>
+                </div>
+                
+                <div style="margin-bottom: 18px; font-size: 16px;"> উপস্থিত পরীক্ষার্থীর সংখ্যাঃ <span class="pdf-dots" style="min-width: 100px;">${toBanglaNum(presentStudents.length)}</span> জন </div>
+                <div style="margin-bottom: 10px; font-size: 16px;"> প্রেরিত বাক্সে প্রথম অংশের সংখ্যাঃ <span class="pdf-dots" style="min-width: 100px;">${toBanglaNum(presentStudents.length)}</span> টি </div>
+            </div>
+
+            <!-- Footer with Aligned Lines -->
+            <table class="pdf-footer-table">
+                <tr>
+                    <td style="width: 30%;">
+                        <span class="pdf-sign-line" style="width: 180px;"></span>
+                        প্রস্তুতকারীর স্বাক্ষর
+                    </td>
+                    <td style="width: 20%;"></td>
+                    <td style="width: 50%;">
+                        <span class="pdf-sign-line" style="width: 240px;"></span>
+                        পরীক্ষা কেন্দ্রের ভারপ্রাপ্ত কর্মকর্তা/কেন্দ্র সচিব-এর<br>স্বাক্ষর ও সীলমোহর
+                    </td>
+                </tr>
+            </table>
+        `;
+
+        document.body.appendChild(element);
+
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     `Shironam_Potro_${examInfo.subCode || 'Document'}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        await html2pdf().set(opt).from(element).save();
+        document.body.removeChild(element);
+        Swal.close();
+
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        Swal.fire("Error", "ডাটা প্রসেস করতে সমস্যা হয়েছে। রিফ্রেশ দিয়ে আবার Try করুন।", "error");
+    }
+}
+
+function downloadShironam() {
     const examName = document.getElementById('examNameSelect').value;
-    const subCode = examInfo.subCode || '---';
+    const subCode = toBanglaNum(examInfo.subCode) || '---';
     const subName = examInfo.subName || '---';
-    const examDate = examInfo.examDate || '---';
+    const today = new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const examDate = examInfo.examDate || today;
     
     Swal.fire({ title: 'Excel তৈরি হচ্ছে...', didOpen: () => { Swal.showLoading(); } });
 
@@ -569,25 +562,17 @@
     const worksheet = workbook.addWorksheet('Shironam');
 
     worksheet.pageSetup = {
-        paperSize: 9,              // 9 = A4 Paper Size
-        orientation: 'portrait',   // Portrait Mode
-        margins: {
-            left: 0.5,             // Margin in inches (~1.27 cm)
-            right: 0.5,
-            top: 0.5,
-            bottom: 0.5,
-            header: 0.3,
-            footer: 0.3
-        },
-        fitToPage: true,           // ১ পাতায় ফিট করার জন্য 
-        fitToWidth: 1,             // প্রস্থে ১ পৃষ্ঠা
-        fitToHeight: 0,            // উচ্চতা অনুযায়ী প্রাকৃতিকভাবে বাড়বে
-        horizontalCentered: true   // প্রিন্ট করার সময় মাঝখানে (Center) থাকবে
+        paperSize: 9,              
+        orientation: 'portrait',   
+        margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+        fitToPage: true,           
+        fitToWidth: 1,             
+        fitToHeight: 0,            
+        horizontalCentered: true   
     };
 
     worksheet.views = [ { showGridLines: true } ];
 
-    // Column Widths setup
     worksheet.columns = [
         { width: 6 }, { width: 8 }, { width: 9 }, { width: 9 }, { width: 9 }, 
         { width: 9 }, { width: 12 }, { width: 13 }, { width: 12 }, { width: 6 }
@@ -614,7 +599,7 @@
     worksheet.mergeCells(`C${r1.number}:J${r1.number}`);
     r1.getCell(1).font = labelStyle; r1.getCell(3).font = infoStyle;
 
-    const r2 = worksheet.addRow(["পরীক্ষা কেন্দ্রঃ", "", "পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও", "", "", "", "", "কেন্দ্র কোডঃ", "১২১৪৪"]);
+    const r2 = worksheet.addRow(["পরীক্ষা কেন্দ্রঃ", "", "পীরগঞ্জ সরকারি টেকনিক্যাল স্কুল ও কলেজ, পীরগঞ্জ, ঠাকুরগাঁও", "", "", "", "", "কেন্দ্র কোডঃ", toBanglaNum('12144')]);
     worksheet.mergeCells(`A${r2.number}:B${r2.number}`);
     worksheet.mergeCells(`C${r2.number}:G${r2.number}`);
     worksheet.mergeCells(`I${r2.number}:J${r2.number}`);
@@ -646,19 +631,15 @@
         }
         const endRow = startRow + boxHeight;
 
-        // ১. প্রথমে সেলগুলো মার্জ করুন
         worksheet.mergeCells(`A${startRow}:J${endRow}`);
         
-        // ২. মেইন সেল ফরম্যাটিং
         const mainCell = worksheet.getCell(`A${startRow}`);
         mainCell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
-        mainCell.font = { name: 'Nikosh', size: 10 };
+        mainCell.font = { name: 'Calibri', size: 11 };
 
-        // ৩. মার্জ করা বক্সের চারপাশের আউটলাইন বর্ডার সঠিকভাবে দেওয়া
         for (let r = startRow; r <= endRow; r++) {
             for (let c = 1; c <= 10; c++) {
                 const cell = worksheet.getCell(r, c);
-                
                 cell.border = {
                     top: r === startRow ? { style: 'thin' } : cell.border?.top,
                     bottom: r === endRow ? { style: 'thin' } : cell.border?.bottom,
@@ -668,8 +649,7 @@
             }
         }
 
-        // ৪. নিচের মোট জন লেখার রো
-        const totalRow = worksheet.addRow(["", "", "", "", "", "মোটঃ", list.length, "", "", "জন"]);
+        const totalRow = worksheet.addRow(["", "", "", "", "", "মোটঃ", toBanglaNum(list.length), "", "", "জন"]);
         worksheet.mergeCells(`G${totalRow.number}:I${totalRow.number}`);
         totalRow.eachCell(cell => cell.font = { name: 'Nikosh' });
         totalRow.getCell(6).alignment = { horizontal: 'right' };
@@ -685,7 +665,7 @@
     createBoxSection("অনুপস্থিত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", absentList, 2);
     createBoxSection("বহিষ্কৃত/অভিযুক্ত পরীক্ষার্থীর রোল নম্বর সমূহ (প্রতিটি লিখতে হবে):", expelList, 2);
 
-    const finalCountRow = worksheet.addRow(["উপস্থিত পরীক্ষার্থীর সংখ্যা :", "", "", "", presentStudents.length, "", "", "", "", "জন"]);
+    const finalCountRow = worksheet.addRow(["উপস্থিত পরীক্ষার্থীর সংখ্যা :", "", "", "", toBanglaNum(presentStudents.length), "", "", "", "", "জন"]);
     worksheet.mergeCells(`A${finalCountRow.number}:D${finalCountRow.number}`);
     worksheet.mergeCells(`E${finalCountRow.number}:I${finalCountRow.number}`);
     finalCountRow.eachCell(cell => cell.font = { name: 'Nikosh' });
@@ -695,7 +675,7 @@
 
     worksheet.addRow([]); worksheet.addRow([]);
 
-    const finalInfoRow = worksheet.addRow(["প্রেরিত দ্বিতীয় বাক্সে প্রথম অংশের সংখ্যা :", "", "", "", "", "", "", "", "", "টি"]);
+    const finalInfoRow = worksheet.addRow(["প্রেরিত বাক্সে প্রথম অংশের সংখ্যা :", "", "", "", toBanglaNum(presentStudents.length), "", "", "", "", "টি"]);
     worksheet.mergeCells(`A${finalInfoRow.number}:D${finalInfoRow.number}`);
     worksheet.mergeCells(`E${finalInfoRow.number}:I${finalInfoRow.number}`);
     finalInfoRow.eachCell(cell => cell.font = { name: 'Nikosh' });
@@ -705,44 +685,29 @@
 
     worksheet.addRow([]); worksheet.addRow([]); worksheet.addRow([]);
 
-    // ==========================================
-    // ✍️ Signature Section עם Top Border
-    // ==========================================
-    
-    // ১. প্রথম লাইন: প্রস্তুতকারীর স্বাক্ষর ও ভারপ্রাপ্ত কর্মকর্তার লাইন ১
-    const signRow1 = worksheet.addRow(["প্রস্তুতকারীর স্বাক্ষর", "", "", "", "", "", "পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তার", "", "", ""]);
-    
-    // সেল মার্জ করা
-    worksheet.mergeCells(`A${signRow1.number}:C${signRow1.number}`); // প্রস্তুতকারীর জন্য A-C
-    worksheet.mergeCells(`G${signRow1.number}:J${signRow1.number}`); // ভারপ্রাপ্ত কর্মকর্তার জন্য G-J
+    // Excel Signature Top Border Alignment Fix
+    const signRow1 = worksheet.addRow(["প্রস্তুতকারীর স্বাক্ষর", "", "", "", "", "", "পরীক্ষাকেন্দ্রের ভারপ্রাপ্ত কর্মকর্তা/কেন্দ্র সচিব-এর", "", "", ""]);
+    worksheet.mergeCells(`A${signRow1.number}:C${signRow1.number}`); 
+    worksheet.mergeCells(`G${signRow1.number}:J${signRow1.number}`); 
 
-    // Alignment এবং Font সেটআপ
     const prepCell1 = signRow1.getCell(1);
     prepCell1.font = { name: 'Nikosh', size: 12, bold: true };
-    prepCell1.alignment = { horizontal: 'center', vertical: 'middle' };
+    prepCell1.alignment = { horizontal: 'center', vertical: 'top' };
 
     const officerCell1 = signRow1.getCell(7);
     officerCell1.font = { name: 'Nikosh', size: 12, bold: true };
-    officerCell1.alignment = { horizontal: 'center', vertical: 'middle' };
+    officerCell1.alignment = { horizontal: 'center', vertical: 'top' };
 
-    // প্রস্তুতকারীর টপ বর্ডার (দাগ)
-    for (let col = 1; col <= 3; col++) {
-        signRow1.getCell(col).border = { top: { style: 'thin' } };
-    }
+    // Applying top borders strictly at same row line
+    for (let col = 1; col <= 3; col++) { signRow1.getCell(col).border = { top: { style: 'thin' } }; }
+    for (let col = 7; col <= 10; col++) { signRow1.getCell(col).border = { top: { style: 'thin' } }; }
 
-    // ভারপ্রাপ্ত কর্মকর্তার টপ বর্ডার (দাগ)
-    for (let col = 7; col <= 10; col++) {
-        signRow1.getCell(col).border = { top: { style: 'thin' } };
-    }
-
-    // ২. দ্বিতীয় লাইন: "স্বাক্ষর ও সীলমোহর"
     const signRow2 = worksheet.addRow(["", "", "", "", "", "", "স্বাক্ষর ও সীলমোহর", "", "", ""]);
     worksheet.mergeCells(`G${signRow2.number}:J${signRow2.number}`);
     
     const officerCell2 = signRow2.getCell(7);
     officerCell2.font = { name: 'Nikosh', size: 12, bold: true };
-    officerCell2.alignment = { horizontal: 'center', vertical: 'middle' };
-
+    officerCell2.alignment = { horizontal: 'center', vertical: 'top' };
 
     workbook.xlsx.writeBuffer()
         .then(buffer => {
@@ -750,7 +715,7 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Shironam_Potro_${subCode}.xlsx`;
+            a.download = `Shironam_Potro_${examInfo.subCode || 'Document'}.xlsx`;
             a.click();
             window.URL.revokeObjectURL(url);
             Swal.close();
